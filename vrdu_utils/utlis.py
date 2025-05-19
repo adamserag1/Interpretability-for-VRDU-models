@@ -1,5 +1,6 @@
-import torch
 from __future__ import annotations
+import torch
+
 
 __all__ = ["to_fp16", "unnormalize_box"]
 
