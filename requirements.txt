@@ -1,0 +1,12 @@
+future
+jupyter
+numpy
+pandas
+torch
+datasets
+transformers
+seqeval
+matplotlib
+evaluate
+
+
