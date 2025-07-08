@@ -2,7 +2,7 @@ from __future__ import annotations
 import torch
 
 
-__all__ = ["to_fp16", "unnormalize_box"]
+__all__ = ["to_fp16", "normalize_bbox", "unnormalize_box"]
 
 def to_fp16(batch, device):
     '''
@@ -16,6 +16,18 @@ def to_fp16(batch, device):
         else:                             # ints / bools stay as-is
             out[k] = v.to(device)
     return out
+
+def normalize_bbox(bbox, width, height):
+    """
+    Convert absolute pixel coords to the 0-1000 LayoutLM/BROS convention.
+    (0,0) is top-left of the page.
+    """
+    return [
+        int(1000 * bbox[0] / width),
+        int(1000 * bbox[1] / height),
+        int(1000 * bbox[2] / width),
+        int(1000 * bbox[3] / height),
+    ]
 
 def unnormalize_box(bbox, width, height):
     '''
