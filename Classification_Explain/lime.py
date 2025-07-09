@@ -49,10 +49,10 @@ class LimeTextExplainer(BaseLimeExplainer):
         def fn(z_bin_list):
             perturbed = []
             for z in z_bin_list:
-                words = [w if z_i else self.mask_token for w, z_i in zip(sample["words"], z)]
+                words = [w if z_i else self.mask_token for w, z_i in zip(sample.words, z)]
                # boxes = [b if z_i else [0,0,0,0] for b, z_i in zip(sample.bboxes, z)] # change to height width of image
-                boxes = sample["bboxes"]
-                perturbed.append(DocSample(sample["image"], words, boxes))
+                boxes = sample.bboxes
+                perturbed.append(DocSample(sample.image, words, boxes))
             print("MADE PREDICT")
             return self._batched_predict(perturbed)
         return fn
