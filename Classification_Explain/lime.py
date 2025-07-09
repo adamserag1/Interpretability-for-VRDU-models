@@ -2,7 +2,6 @@
 Applying Lime w.r.t VRDU modalities 
 """
 from vrdu_utils import *
-from __future__ import annotations
 
 import numpy as np
 import torch
