@@ -12,12 +12,12 @@ def make_layoutlmv3_encoder_cls(processor, max_length: int = 512):
     """
     def encode(samples, device):
         images = [s.image.convert("RGB") for s in samples]
-        words = [s["words"] for s in samples]
+        words = [s.words for s in samples]
 
         boxes = []
         for s in samples:
-            w, h = s["image"].size
-            boxes.append([normalize_bbox(b, w, h) for b in s["bbox"]])
+            w, h = s.image.size
+            boxes.append([normalize_bbox(b, w, h) for b in s.bbox])
 
         enc = processor(
             images,
