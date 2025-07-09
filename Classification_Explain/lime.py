@@ -42,7 +42,8 @@ class LimeTextExplainer(BaseLimeExplainer):
 
     def _batched_predict(self, samples):
         out = []
-        for i in tqdm(range(0, len(samples), self.batch_size), desc="[LIME] - Text"):
+        itr = tqdm(range(0, len(samples), self.batch_size), desc = "[LIME] - Text")
+        for i in itr:
             out.append(self._predict(samples[i:i + self.batch_size]))
         return np.vstack(out)
 
