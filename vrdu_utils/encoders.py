@@ -11,13 +11,13 @@ def make_layoutlmv3_encoder_cls(processor, max_length: int = 512):
     LayoutLMv3 encoder for document classification.
     """
     def encode(samples, device):
-        images = [s.images.conver("RGB") for s in samples]
-        words = [s.words for s in samples]
+        images = [s["image"].convert("RGB") for s in samples]
+        words = [s["words"] for s in samples]
 
         boxes = []
         for s in samples:
-            w, h = s.image.size
-            boxes.append([normalize_bbox(b, w, h) for b in s.bbox])
+            w, h = s["image"].size
+            boxes.append([normalize_bbox(b, w, h) for b in s["bbox"])
 
         enc = processor(
             images,
@@ -30,6 +30,7 @@ def make_layoutlmv3_encoder_cls(processor, max_length: int = 512):
         )
         return _stack_on_decive(enc, device)
     return encode
+
 
 def make_bros_encoder_cls(tokenizer, max_length = 512):
     """
