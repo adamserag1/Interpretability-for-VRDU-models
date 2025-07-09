@@ -11,7 +11,7 @@ def make_layoutlmv3_encoder_cls(processor, max_length: int = 512):
     LayoutLMv3 encoder for document classification.
     """
     def encode(samples, device):
-        images = [s["image"].convert("RGB") for s in samples]
+        images = [s.image.convert("RGB") for s in samples]
         words = [s["words"] for s in samples]
 
         boxes = []
