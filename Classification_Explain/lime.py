@@ -33,10 +33,17 @@ class BaseLimeExplainer:
 
 
 class LimeTextExplainer(BaseLimeExplainer):
-    def __init__(self, model, encode_fn, mask_token = "[UNK]", device=None, kernel_width_factor=1.0):
+    def __init__(self, model, encode_fn, mask_token = "[UNK]", device=None, *, kernel_width_factor=1.0, batch_size = 16):
         super().__init__(model, encode_fn, device)
         self.mask_token = mask_token
         self.kernel_width_factor = kernel_width_factor
+        self.batch_size = batch_size
+
+    def _batched_predict(self, samples):
+        out = []
+        for i in range(0, len(samples), self.batch_size):
+            out.append(self._predit(samples[i:i + self.batch_size]))
+        return np.vstack(out)
 
     def _make_predict_fn(self, sample: DocSample):
         def fn(z_bin_list):
@@ -47,8 +54,10 @@ class LimeTextExplainer(BaseLimeExplainer):
                 boxes = sample["bboxes"]
                 perturbed.append(DocSample(sample["image"], words, boxes))
             print("MADE PREDICT")
-            return self._predict(perturbed)
+            return self._batched_predict(perturbed)
         return fn
+
+# CHANGE NUMBER OF SMAPLES NUMBER OF FEATURES
 
     def explain(self, sample: DocSample, num_samples = 4000, num_features=30):
         n_tokens = len(sample["words"])
