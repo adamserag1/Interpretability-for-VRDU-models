@@ -46,12 +46,13 @@ class LimeTextExplainer(BaseLimeExplainer):
                # boxes = [b if z_i else [0,0,0,0] for b, z_i in zip(sample.bboxes, z)] # change to height width of image
                 boxes = sample["bboxes"]
                 perturbed.append(DocSample(sample["image"], words, boxes))
+            print("MADE PREDICT")
             return self._predict(perturbed)
-        print("MADE PREDICT")
         return fn
 
     def explain(self, sample: DocSample, num_samples = 4000, num_features=30):
         n_tokens = len(sample["words"])
+        print("Begging EXPLAINER")
         explainer = LimeTabularExplainer(
             training_data = np.vstack([np.ones(n_tokens), np.zeros(n_tokens)]),
             feature_names = sample["words"],
