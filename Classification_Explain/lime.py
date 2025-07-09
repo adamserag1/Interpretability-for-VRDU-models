@@ -61,7 +61,7 @@ class LimeTextExplainer(BaseLimeExplainer):
 
 # CHANGE NUMBER OF SMAPLES NUMBER OF FEATURES
 
-    def explain(self, sample: DocSample, num_samples = 10000, num_features=30):
+    def explain(self, sample: DocSample, num_samples = 4000, num_features=30):
         n_tokens = len(sample.words)
         print("Begging EXPLAINER")
         explainer = LimeTabularExplainer(
