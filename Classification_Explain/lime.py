@@ -50,9 +50,10 @@ class LimeTextExplainer(BaseLimeExplainer):
     def _make_predict_fn(self, sample: DocSample):
         def fn(z_bin_list):
             perturbed = []
+            w, h = sample.image.size
             for z in z_bin_list:
                 words = [w if z_i else self.mask_token for w, z_i in zip(sample.words, z)]
-                boxes = [b if z_i else [0,0,0,0] for b, z_i in zip(sample.bboxes, z)] # change to height width of image
+                boxes = [b if z_i else [0,0,w,h] for b, z_i in zip(sample.bboxes, z)] # change to height width of image
                 #boxes = sample.bboxes
                 perturbed.append(DocSample(sample.image, words, boxes, label=sample.label))
             print("MADE PREDICT")
@@ -65,7 +66,8 @@ class LimeTextExplainer(BaseLimeExplainer):
         n_tokens = len(sample.words)
         print("Begging EXPLAINER")
         explainer = LimeTabularExplainer(
-            training_data = np.vstack([np.ones(n_tokens), np.zeros(n_tokens)]),
+            #training_data = np.vstack([np.ones(n_tokens), np.zeros(n_tokens)]),
+            training_data=np.random.randint(0, 2, size=(200, n_tokens)),
             feature_names = sample.words,
             class_names = self.class_names,
             discretize_continuous = False,
