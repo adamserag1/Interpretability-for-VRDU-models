@@ -42,7 +42,7 @@ class LimeTextExplainer(BaseLimeExplainer):
     def _batched_predict(self, samples):
         out = []
         for i in range(0, len(samples), self.batch_size):
-            out.append(self._predit(samples[i:i + self.batch_size]))
+            out.append(self._predict(samples[i:i + self.batch_size]))
         return np.vstack(out)
 
     def _make_predict_fn(self, sample: DocSample):
