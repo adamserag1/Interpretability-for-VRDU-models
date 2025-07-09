@@ -5,6 +5,7 @@ Applying Lime w.r.t VRDU modalities
 import numpy as np
 import torch
 from lime.lime_tabular import LimeTabularExplainer
+from tqdm import tqdm
 
 from vrdu_utils.module_types import DocSample
 
@@ -41,7 +42,7 @@ class LimeTextExplainer(BaseLimeExplainer):
 
     def _batched_predict(self, samples):
         out = []
-        for i in range(0, len(samples), self.batch_size):
+        for i in tqdm(range(0, len(samples), self.batch_size), desc="[LIME] - Text"):
             out.append(self._predict(samples[i:i + self.batch_size]))
         return np.vstack(out)
 
