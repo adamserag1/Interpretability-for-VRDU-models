@@ -52,7 +52,7 @@ class LimeTextExplainer(BaseLimeExplainer):
 
     def explain(self, sample: DocSample, num_samples = 4000, num_features=30):
         n_tokens = len(sample["words"])
-
+        print(sample["words"])
         explainer = LimeTabularExplainer(
             training_data = np.vstack([np.ones(n_tokens), np.zeros(n_tokens)]),
             feature_names = sample["words"],
