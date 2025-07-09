@@ -1,17 +1,13 @@
 """
 Applying Lime w.r.t VRDU modalities 
 """
-from vrdu_utils import *
 
 import numpy as np
 import torch
-from PIL import Image
 from lime.lime_tabular import LimeTabularExplainer
-from lime import lime_image
-from skimage.segmentation import slic
-from typing import List  # minimalist typing – feel free to drop
 
 from vrdu_utils.module_types import DocSample
+
 
 class BaseLimeExplainer:
     def __init__(self, model, encode_fn, device=None):
@@ -55,7 +51,7 @@ class LimeTextExplainer(BaseLimeExplainer):
         return fn
 
     def explain(self, sample: DocSample, num_samples = 4000, num_features=30):
-        n_tokens = len(sample.words)
+        n_tokens = len(sample["words"])
 
         explainer = LimeTabularExplainer(
             training_data = np.vstack([np.ones(n_tokens), np.zeros(n_tokens)]),
