@@ -2,34 +2,75 @@
 Applying Lime w.r.t VRDU modalities 
 """
 from vrdu_utils import *
+from __future__ import annotations
+
+import numpy as np
+import torch
+from PIL import Image
+from lime.lime_tabular import LimeTabularExplainer
+from lime import lime_image
+from skimage.segmentation import slic
+from typing import List  # minimalist typing – feel free to drop
+
+from vrdu_utils.module_types import DocSample
 
 class BaseLimeExplainer:
-    def __init__(self, model, processor, device: torch.devce):
-        self.model = model.eval
-        self.processor = processor
+    def __init__(self, model, encode_fn, device=None):
+        self.model = model.eval()
+        self.encode_fn = encode_fn
         self.device = torch.device(device or "cuda" if torch.cuda.is_available() else "cpu")
         self.model.to(self.device)
-        self.class_names = [v for k, v in sorted(model.config.id2label.items())]
+        self.class_names = [v for k, v in sorted(model.config.id2label.items()) if hasattr(model.config, "id2label") else []]
     
-    def _encode(self, samples: Sequence[DocSample]) -> Dict[str, torch.Tensor]:
-        images = [s.image for s in samples]
-        texts = [s.words for s in samples]
-        boxes = [s.boxes for s in samples]
-        try:
-            enc = self.processor(images = images,
-                                texts = texts,
-                                boxes = boxes,
-                                return_tensors="pt",
-                                padding = "max_length",
-                                truncation = True,
-                                max_length=512)
-        except:
-            enc = self.processor(texts = texts,
-                                boxes = boxes,
-                                return_tensors = "pt",
-                                padding = "max_length",
-                                truncation = True,
-                                max_length = 512)
-        
+    def _encode(self, samples):
+        return self.encode_fn(samples, self.device)
 
-    
+    @torch.no_grad
+    def _predict(self, samples):
+        logits = self.model(**self._encode(samples)).logits
+        return torch.softmax(logits, dim=-1).cpu().numpy()
+
+    def explain(self, sample, **kwargs):
+        return NotImplementedError
+
+    def explain_batch(self, samples, **kwargs):
+        return [self.explain(s, **kwargs) for s in samples]
+
+
+class LimeTextExplainer(BaseLimeExplainer):
+    def __init__(self, model, encode_fn, mask_token = "[UNK]", device=None, kernel_width_factor=1.0):
+        super().__init__(model, encode_fn, device)
+        self.mask_token = mask_token
+        self.kernel_width_factor = kernel_width_factor
+
+    def _make_predict_fn(self, sample: DocSample):
+        def fn(z_bin_list):
+            perturbed = []
+            for z in z_bin_list:
+                words = [w if z_i else self.mask_token for w, z_i in zip(sample.words, z)]
+               # boxes = [b if z_i else [0,0,0,0] for b, z_i in zip(sample.bboxes, z)] # change to height width of image
+                boxes = sample.bboxes
+                perturbed.append(DocSample(sample.image, words, boxes))
+            return self._predict(perturbed)
+
+        return fn
+
+    def explain(self, sample: DocSample, num_samples = 4000, num_features=30):
+        n_tokens = len(sample.words)
+
+        explainer = LimeTabularExplainer(
+            training_data = np.vstack([np.ones(n_tokens), np.zeros(n_tokens)]),
+            feature_names = sample.words,
+            class_names = self.class_names,
+            discretize_continuous = False,
+            categorical_features = list(range(n_tokens)),
+            mode = 'classification',
+            kernel_width = np.sqrt(n_tokens) * self.kernel_width_factor
+        )
+
+        return explainer.explain_instance(
+            data_row = np.ones(n_tokens, d_type=int),
+            predict_fn=self._make_predict_fn(sample),
+            num_samples = num_samples,
+            num_features = num_features
+        )

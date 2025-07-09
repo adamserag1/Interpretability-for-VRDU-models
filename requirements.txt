@@ -8,5 +8,5 @@ transformers
 seqeval
 matplotlib
 evaluate
-
-
+scikit-image
+lime
