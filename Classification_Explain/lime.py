@@ -42,7 +42,7 @@ class LimeTextExplainer(BaseLimeExplainer):
         def fn(z_bin_list):
             perturbed = []
             for z in z_bin_list:
-                words = [w if z_i else self.mask_token for w, z_i in zip(sample.words, z)]
+                words = [w if z_i else self.mask_token for w, z_i in zip(sample["words"], z)]
                # boxes = [b if z_i else [0,0,0,0] for b, z_i in zip(sample.bboxes, z)] # change to height width of image
                 boxes = sample.bboxes
                 perturbed.append(DocSample(sample.image, words, boxes))
@@ -55,7 +55,7 @@ class LimeTextExplainer(BaseLimeExplainer):
 
         explainer = LimeTabularExplainer(
             training_data = np.vstack([np.ones(n_tokens), np.zeros(n_tokens)]),
-            feature_names = sample.words,
+            feature_names = sample["words"],
             class_names = self.class_names,
             discretize_continuous = False,
             categorical_features = list(range(n_tokens)),
