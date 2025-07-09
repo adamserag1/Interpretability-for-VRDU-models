@@ -17,7 +17,7 @@ def make_layoutlmv3_encoder_cls(processor, max_length: int = 512):
         boxes = []
         for s in samples:
             w, h = s.image.size
-            boxes.append([normalize_bbox(b, w, h) for b in s.bbox])
+            boxes.append([normalize_bbox(b, w, h) for b in s.bboxes])
 
         enc = processor(
             images,
