@@ -63,7 +63,7 @@ class LimeTextExplainer(BaseLimeExplainer):
         )
 
         return explainer.explain_instance(
-            data_row = np.ones(n_tokens, d_type=int),
+            data_row = np.ones(n_tokens),
             predict_fn=self._make_predict_fn(sample),
             num_samples = num_samples,
             num_features = num_features
