@@ -54,7 +54,7 @@ class LimeTextExplainer(BaseLimeExplainer):
             for z in z_bin_list:
                 words = [w if z_i else self.mask_token for w, z_i in zip(sample.words, z)]
                 if align_boxes:
-                    boxes = [b if z_i else [0,0,w,h] for b, z_i in zip(sample.bboxes, z)] # change to height width of image
+                    boxes = [b if z_i else [0,0,w,h] for b, z_i in zip(sample.bboxes, z)]
                 else:
                     boxes = sample.bboxes
                 perturbed.append(DocSample(sample.image, words, boxes, label=sample.label))
