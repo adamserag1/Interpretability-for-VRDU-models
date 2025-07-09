@@ -20,7 +20,7 @@ class BaseLimeExplainer:
         self.encode_fn = encode_fn
         self.device = torch.device(device or "cuda" if torch.cuda.is_available() else "cpu")
         self.model.to(self.device)
-        self.class_names = [v for k, v in sorted(model.config.id2label.items()) if hasattr(model.config, "id2label") else []]
+        self.class_names = [v for k, v in sorted(model.config.id2label.items())] if hasattr(model.config, "id2label") else []
     
     def _encode(self, samples):
         return self.encode_fn(samples, self.device)
