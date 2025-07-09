@@ -64,7 +64,7 @@ class LimeTextExplainer(BaseLimeExplainer):
         print("Begging EXPLAINER")
         explainer = LimeTabularExplainer(
             training_data = np.vstack([np.ones(n_tokens), np.zeros(n_tokens)]),
-            feature_names = sample["words"],
+            feature_names = sample.words,
             class_names = self.class_names,
             discretize_continuous = False,
             categorical_features = list(range(n_tokens)),
