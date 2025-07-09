@@ -47,14 +47,16 @@ class LimeTextExplainer(BaseLimeExplainer):
             out.append(self._predict(samples[i:i + self.batch_size]))
         return np.vstack(out)
 
-    def _make_predict_fn(self, sample: DocSample):
+    def _make_predict_fn(self, sample: DocSample, align_boxes):
         def fn(z_bin_list):
             perturbed = []
             w, h = sample.image.size
             for z in z_bin_list:
                 words = [w if z_i else self.mask_token for w, z_i in zip(sample.words, z)]
-                #boxes = [b if z_i else [0,0,w,h] for b, z_i in zip(sample.bboxes, z)] # change to height width of image
-                boxes = sample.bboxes
+                if align_boxes:
+                    boxes = [b if z_i else [0,0,w,h] for b, z_i in zip(sample.bboxes, z)] # change to height width of image
+                else:
+                    boxes = sample.bboxes
                 perturbed.append(DocSample(sample.image, words, boxes, label=sample.label))
             print("MADE PREDICT")
             return self._batched_predict(perturbed)
@@ -62,7 +64,7 @@ class LimeTextExplainer(BaseLimeExplainer):
 
 # CHANGE NUMBER OF SMAPLES NUMBER OF FEATURES
 
-    def explain(self, sample: DocSample, training_data, num_samples = 4000, num_features=30):
+    def explain(self, sample: DocSample, align_boxes = False, num_samples = 4000, num_features=30):
         n_tokens = len(sample.words)
         print("Begging EXPLAINER")
         explainer = LimeTabularExplainer(
@@ -78,7 +80,7 @@ class LimeTextExplainer(BaseLimeExplainer):
         print("Begging EXPLAIN_INSTANCE")
         return explainer.explain_instance(
             data_row = np.ones(n_tokens),
-            predict_fn=self._make_predict_fn(sample),
+            predict_fn=self._make_predict_fn(sample, align_boxes),
             num_samples = num_samples,
             num_features = num_features
         )
