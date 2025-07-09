@@ -29,6 +29,7 @@ def make_layoutlmv3_encoder_cls(processor, max_length: int = 512):
             return_tensors="pt",
         )
         return _stack_on_decive(enc, device)
+    print("ENCODED")
     return encode
 
 

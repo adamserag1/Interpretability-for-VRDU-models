@@ -47,7 +47,7 @@ class LimeTextExplainer(BaseLimeExplainer):
                 boxes = sample["bboxes"]
                 perturbed.append(DocSample(sample["image"], words, boxes))
             return self._predict(perturbed)
-
+        print("MADE PREDICT")
         return fn
 
     def explain(self, sample: DocSample, num_samples = 4000, num_features=30):
