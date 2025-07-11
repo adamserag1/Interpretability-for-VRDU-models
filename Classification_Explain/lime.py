@@ -9,6 +9,9 @@ from tqdm import tqdm
 
 from vrdu_utils.module_types import DocSample
 
+"""
+DOC-CLASS EXPLANINERS
+"""
 
 class BaseLimeExplainer:
     def __init__(self, model, encode_fn, device=None):
@@ -84,3 +87,45 @@ class LimeTextExplainer(BaseLimeExplainer):
             num_samples = num_samples,
             num_features = num_features
         )
+
+class LimeLayoutExplainer(BaseLimeExplainer):
+    raise NotImplementedError
+
+class LimeVisionExplainer(BaseLimeExplainer):
+    raise NotImplementedError
+
+
+"""
+NER Explainers (adapters of ^^)
+"""
+
+class NerAdapter:
+    """
+    Mixin that adapts a document level Lime Explainer subclass for token-classification (NER FUNSD)
+    """
+    @torch.no_grad()
+    def _predict(self, samples):
+        enc = self._encode(samples)
+        out = self.model(**enc).logits
+        probs = torch.softmax(out, dim=-1).cpu().numpy()
+
+        tok_idx = self.target_token_fn(enc)
+        tok_probs = probs[:, tok_idx, :]
+
+        if getattr(self, "target_labels", None) is None:
+            chosen = tok_probs.max(dim=-1).values[:, None]
+        else:
+            chosen = tok_probs[:, self.target_labels]
+            if chosen.ndim == 1:
+                chosen = chosen[:, None]
+
+        return chosen.cpu().numpy()
+
+class LimeTextNer(NerAdapter, LimeTextExplainer):
+    pass
+
+class LimeLayoutNer(NerAdapter,LimeLayoutExplainer):
+    pass
+
+class LimeVisionNer(NerAdapter, LimeVisionExplainer):
+    pass
