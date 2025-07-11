@@ -3,7 +3,7 @@ import torch
 from PIL import Image, ImageDraw
 from matplotlib import cm
 
-__all__ = ["to_fp16", "normalize_bbox", "unnormalize_box"]
+__all__ = ["to_fp16", "normalize_bbox", "unnormalize_box", 'draw_lime_token_heatmap', 'first_subtoken_of_word']
 
 def to_fp16(batch, device):
     '''
