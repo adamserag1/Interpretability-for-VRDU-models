@@ -103,6 +103,11 @@ class NerAdapter:
     """
     Mixin that adapts a document level Lime Explainer subclass for token-classification (NER FUNSD)
     """
+    def __init__(self, *args, target_token_fn, target_labels=None, **kwargs):
+        self.target_token_fn = target_token_fn
+        self.target_labels   = target_labels
+        super().__init__(*args, **kwargs)
+
     @torch.no_grad()
     def _predict(self, samples):
         enc = self._encode(samples)
