@@ -14,6 +14,7 @@ def make_layoutlmv3_encoder(processor, ner = False, max_length: int = 128):
         images = [s.image.convert("RGB") for s in samples]
         words = [s.words for s in samples]
         ner_tags = [s.ner_tags for s in samples]
+
         boxes = []
         for s in samples:
             w, h = s.image.size

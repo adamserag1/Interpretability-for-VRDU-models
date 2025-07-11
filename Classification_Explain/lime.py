@@ -60,7 +60,7 @@ class LimeTextExplainer(BaseLimeExplainer):
                     boxes = [b if z_i else [0,0,w,h] for b, z_i in zip(sample.bboxes, z)]
                 else:
                     boxes = sample.bboxes
-                perturbed.append(DocSample(sample.image, words, boxes, label=sample.label))
+                perturbed.append(DocSample(sample.image, words, boxes, ner_tags = sample.ner_tags, label=sample.label))
             print("MADE PREDICT")
             return self._batched_predict(perturbed)
         return fn
