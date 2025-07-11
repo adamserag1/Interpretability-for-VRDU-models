@@ -89,10 +89,10 @@ class LimeTextExplainer(BaseLimeExplainer):
         )
 
 class LimeLayoutExplainer(BaseLimeExplainer):
-    raise NotImplementedError
+    pass
 
 class LimeVisionExplainer(BaseLimeExplainer):
-    raise NotImplementedError
+    pass
 
 
 """
