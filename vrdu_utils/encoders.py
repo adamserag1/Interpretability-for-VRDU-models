@@ -6,33 +6,44 @@ from vrdu_utils.utils import normalize_bbox
 def _stack_on_decive(enc, device):
     return {k: v.to(device) for k, v in enc.items()}
 
-def make_layoutlmv3_encoder_cls(processor, max_length: int = 128):
+def make_layoutlmv3_encoder(processor, ner = False, max_length: int = 128):
     """"
     LayoutLMv3 encoder for document classification.
     """
     def encode(samples, device):
         images = [s.image.convert("RGB") for s in samples]
         words = [s.words for s in samples]
-
+        ner_tags = [s.ner_tags for s in samples]
         boxes = []
         for s in samples:
             w, h = s.image.size
             boxes.append([normalize_bbox(b, w, h) for b in s.bboxes])
-
-        enc = processor(
-            images,
-            words,
-            boxes=boxes,
-            truncation=True,
-            padding = "max_length",
-            max_length=max_length,
-            return_tensors="pt",
-        )
+        if not ner:
+            enc = processor(
+                images,
+                words,
+                boxes=boxes,
+                truncation=True,
+                padding = "max_length",
+                max_length=max_length,
+                return_tensors="pt",
+            )
+        else:
+            enc = processor(
+                images,
+                words,
+                boxes=boxes,
+                word_labels=ner_tags,
+                truncation=True,
+                padding="max_length",
+                max_length=max_length,
+                return_tensors="pt",
+            )
         return _stack_on_decive(enc, device)
 
     return encode
 
-
+# TODO: Allow NER encoder
 def make_bros_encoder_cls(tokenizer, max_length = 512):
     """
     BROS encoder for document classification.
