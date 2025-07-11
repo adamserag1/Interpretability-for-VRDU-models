@@ -105,3 +105,17 @@ def draw_lime_token_heatmap(
 
     # merge overlay with base
     return Image.alpha_composite(base, overlay)
+
+def first_subtoken_of_word(word_idx: int, processor):
+    """
+    Returns a target_token_fn that finds the first sub-token position
+    for `word_idx` (0-based) in *any* encoded batch of size 1.
+    """
+    def fn(enc):
+        word_ids = processor.tokenizer.word_ids(batch_index=0)
+        for pos, wid in enumerate(word_ids):
+            if wid == word_idx:          # <-- first match is the first sub-token
+                return pos
+        raise ValueError(f"word_idx {word_idx} not found in batch")
+    return fn
+
