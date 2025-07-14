@@ -19,14 +19,26 @@ def to_fp16(batch, device):
 
 def normalize_bbox(bbox, width, height):
     """
-    Convert absolute pixel coords to the 0-1000 LayoutLM/BROS convention.
-    (0,0) is top-left of the page.
+    Convert absolute pixel coords (x0,y0,x1,y1) to 0-1000 scale *and*
+    clamp every value into [0, 1000].  If the bbox already looks
+    normalised, leave it unchanged.
     """
+    if max(bbox) <= 1000:
+        # assume already in 0-1000 layout units
+        x0, y0, x1, y1 = bbox
+    else:
+        x0, y0, x1, y1 = bbox
+        x0 = int(1000 * x0 / width)
+        y0 = int(1000 * y0 / height)
+        x1 = int(1000 * x1 / width)
+        y1 = int(1000 * y1 / height)
+
+    # hard clamp
     return [
-        int(1000 * bbox[0] / width),
-        int(1000 * bbox[1] / height),
-        int(1000 * bbox[2] / width),
-        int(1000 * bbox[3] / height),
+        max(0, min(1000, x0)),
+        max(0, min(1000, y0)),
+        max(0, min(1000, x1)),
+        max(0, min(1000, y1)),
     ]
 
 def unnormalize_box(bbox, width, height):
