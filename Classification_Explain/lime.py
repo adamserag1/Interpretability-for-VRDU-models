@@ -157,6 +157,8 @@ class LimeVisionExplainer(BaseLimeExplainer):
                 )
                 for arr in img_list
             ]
+            return self._batched_predict(perturbed)
+
         return fn
 
 
