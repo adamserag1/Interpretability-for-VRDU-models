@@ -157,6 +157,8 @@ class LimeVisionExplainer(BaseLimeExplainer):
                 )
                 for arr in img_list
             ]
+        return fn
+
 
     def explain(self, sample, *, num_samples = 8000, num_features = 30):
         explainer = LimeImageExplainer(random_state=0)
