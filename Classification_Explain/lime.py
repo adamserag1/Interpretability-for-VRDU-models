@@ -90,8 +90,32 @@ class LimeTextExplainer(BaseLimeExplainer):
             labels = self.labels
         )
 
-class LimeLayoutExplainer(BaseLimeExplainer):
-    pass
+class LimeLayoutExplainer(LimeTextExplainer):
+    """
+    Perturbs **bounding boxes** only.
+    Tokens (`words`) stay fixed, so attribution
+    reflects *layout* importance, not lexical content.
+    """
+    # ---------- override only the perturb-function -------------------
+    def _make_predict_fn(self, sample: DocSample):
+        def fn(z_bin_mat):
+            perturbed = []
+            for z in z_bin_mat:
+                boxes = [
+                    b if keep else [0, 0, w, h]
+                    for b, keep in zip(sample.bboxes, z)
+                ]
+                perturbed.append(
+                    DocSample(
+                        sample.image,                 # same page image
+                        sample.words,                 # keep tokens
+                        boxes,                        # modified boxes
+                        label    = sample.label,
+                        ner_tags = sample.ner_tags    # keep BIO labels
+                    )
+                )
+            return self._batched_predict(perturbed)
+        return fn
 
 class LimeVisionExplainer(BaseLimeExplainer):
     pass
