@@ -97,9 +97,12 @@ class LimeLayoutExplainer(LimeTextExplainer):
     reflects *layout* importance, not lexical content.
     """
     # ---------- override only the perturb-function -------------------
-    def _make_predict_fn(self, sample: DocSample):
+    def _make_predict_fn(self, sample: DocSample, align_boxes=None):
         def fn(z_bin_mat):
             perturbed = []
+
+            w, h = sample.image.size
+
             for z in z_bin_mat:
                 boxes = [
                     b if keep else [0, 0, w, h]
