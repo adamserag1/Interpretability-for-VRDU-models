@@ -124,7 +124,7 @@ class NerAdapter:
             if chosen.ndim == 1:
                 chosen = chosen[:, None]
 
-        return chosen.cpu().numpy()
+        return chosen
 
 class LimeTextNer(NerAdapter, LimeTextExplainer):
     pass
