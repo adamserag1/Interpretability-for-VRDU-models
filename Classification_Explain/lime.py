@@ -37,11 +37,12 @@ class BaseLimeExplainer:
 
 
 class LimeTextExplainer(BaseLimeExplainer):
-    def __init__(self, model, encode_fn, mask_token = "[UNK]", device=None, *, kernel_width_factor=1.0, batch_size = 16):
+    def __init__(self, model, encode_fn, mask_token = "[UNK]", device=None, *, kernel_width_factor=1.0, labels = None, batch_size = 16):
         super().__init__(model, encode_fn, device)
         self.mask_token = mask_token
         self.kernel_width_factor = kernel_width_factor
         self.batch_size = batch_size
+        self.labels = labels
 
     def _batched_predict(self, samples):
         out = []
@@ -85,7 +86,8 @@ class LimeTextExplainer(BaseLimeExplainer):
             data_row = np.ones(n_tokens),
             predict_fn=self._make_predict_fn(sample, align_boxes),
             num_samples = num_samples,
-            num_features = num_features
+            num_features = num_features,
+            labels = self.labels
         )
 
 class LimeLayoutExplainer(BaseLimeExplainer):
