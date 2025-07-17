@@ -5,7 +5,12 @@ Applying Lime w.r.t VRDU modalities
 import numpy as np
 import torch
 from lime.lime_tabular import LimeTabularExplainer
+from pygments.formatters import img
 from tqdm import tqdm
+from PIL import Image
+from skimage.segmentation import slic
+from lime.lime_image import LimeImageExplainer
+
 
 from vrdu_utils.module_types import DocSample
 
@@ -121,7 +126,52 @@ class LimeLayoutExplainer(LimeTextExplainer):
         return fn
 
 class LimeVisionExplainer(BaseLimeExplainer):
-    pass
+    def __init__(self, model, encode_fn, *, n_segments = 200, compactness = 20.0, sigma = 1.0, batch_size = 32, device = None):
+        super().__init__(model, encode_fn, device)
+        self.seg_kwargs = dict(
+            n_segments = n_segments,
+            compactness = compactness,
+            sigma = sigma,
+            start_label = 1
+        )
+        self.batch_size = batch_size
+
+    def _batched_predict(self, samples):
+        out = []
+        it = range(0, len(samples), self.batch_size)
+        from tqdm.auto import tqdm
+        it = tqdm(it, desc="[LIME] - VISION", leave=False)
+        for i in it:
+            out.append(self._predict(samples[i:i + self.batch_size]))
+        return np.vstack(out)
+
+    def _make_predict_fn(self, sample: DocSample):
+        def fn(img_list):
+            perturbed = [
+                DocSample(
+                    Image.fromarray(arr),
+                    sample.words,
+                    sample.bboxes,
+                    label = sample.label,
+                    ner_tags = sample.ner_tags,
+                )
+                for arr in img_list
+            ]
+
+    def explain(self, sample, *, num_samples = 8000, num_features = 30):
+        explainer = LimeImageExplainer(random_state=0)
+        img_np = np.array(sample.image)
+
+        return explainer.explain_instance(
+            img_np,
+            classifier_fn = self._make_predict_fn(sample),
+            segmentation_fn = lambda img: slic(img, **self.seg_kwargs),
+            top_labels = [0],
+            hide_color=(127, 127, 127),
+            num_samples = num_samples,
+            batch_size = self.batch_size
+        )
+
 
 
 """
@@ -152,7 +202,8 @@ class NerAdapter:
             chosen = tok_probs[:, self.target_labels]
             if chosen.ndim == 1:
                 chosen = chosen[:, None]
-
+        if isinstance(chosen, torch.Tensor):
+            return chosen.cpu().numpy()
         return chosen
 
 class LimeTextNer(NerAdapter, LimeTextExplainer):
