@@ -170,7 +170,7 @@ class LimeVisionExplainer(BaseLimeExplainer):
         return fn
 
 
-    def explain(self, sample, *, num_samples = 8000, num_features = 30):
+    def explain(self, sample, *, num_samples = 8000, num_features = 30, hide_color=(127, 127, 127)):
         explainer = LimeImageExplainer(random_state=0)
         img_np = np.array(sample.image)
 
@@ -179,7 +179,7 @@ class LimeVisionExplainer(BaseLimeExplainer):
             classifier_fn = self._make_predict_fn(sample),
             segmentation_fn = lambda img: slic(img, **self.seg_kwargs),
             top_labels = 1,
-            hide_color=(127, 127, 127),
+            hide_color=self.hide_color,
             num_samples = num_samples,
             batch_size = self.batch_size
         )
