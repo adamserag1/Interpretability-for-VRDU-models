@@ -2,7 +2,8 @@ from __future__ import annotations
 import torch
 from PIL import Image, ImageDraw
 from matplotlib import cm
-
+from vrdu_utils.module_types import *
+from torch.utils.data import DataLoader, Dataset
 
 def to_fp16(batch, device):
     '''
@@ -130,3 +131,32 @@ def first_subtoken_of_word(word_idx: int, processor):
         raise ValueError(f"word_idx {word_idx} not found in batch")
     return fn
 
+def row_to_docsample(ex):
+    """
+    ex is one row of the HF dataset (a plain dict).
+    Returns a DocSample instance.
+    """
+    # -- guarantee types the encoders expect
+    img = ex["image"]
+    if not isinstance(img, Image.Image):
+        img = Image.fromarray(img)
+
+    bbs = [normalize_bbox(b) for b in ex["bboxes"]]   # safety guard
+
+    return DocSample(
+        image   = img,
+        words   = ex["words"],
+        bboxes  = bbs,
+        label   = int(ex["label"]),      # HF sometimes stores as np.int64
+        ner_tags= ex.get("ner_tags"),    # may be absent for RVL
+    )
+
+class DocSampleDataset(Dataset):
+    def __init__(self, hf_ds):
+        self.ds = hf_ds
+
+    def __getitem__(self, idx):
+        return row_to_docsample(self.ds[idx])
+
+    def __len__(self):
+        return len(self.ds)
