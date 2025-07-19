@@ -157,6 +157,8 @@ class DocSampleDataset(Dataset):
         self.ds = hf_ds
 
     def __getitem__(self, idx):
+        sample = self.ds[idx]
+        return DocSample(image=sample["image"], words=sample["words"], bboxes=sample["bboxes"], label=sample["label"], ner_tags=sample.get("ner_tags")), idx
         return row_to_docsample(self.ds[idx])
 
     def __len__(self):
