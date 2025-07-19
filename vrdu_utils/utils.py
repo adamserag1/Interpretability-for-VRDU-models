@@ -141,7 +141,8 @@ def row_to_docsample(ex):
     if not isinstance(img, Image.Image):
         img = Image.fromarray(img)
 
-    bbs = [normalize_bbox(b) for b in ex["bboxes"]]   # safety guard
+    w, h = img.size
+    bbs = [normalize_bbox(b, w, h) for b in ex["bboxes"]]   # safety guard
 
     return DocSample(
         image   = img,
