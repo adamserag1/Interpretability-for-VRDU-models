@@ -71,7 +71,7 @@ class LimeTextExplainer(BaseLimeExplainer):
             return self._batched_predict(perturbed)
         return fn
 
-# CHANGE NUMBER OF SMAPLES NUMBER OF FEATURES
+    # CHANGE NUMBER OF SMAPLES NUMBER OF FEATURES
 
     def explain(self, sample: DocSample, align_boxes = False, num_samples = 4000, num_features=30):
         n_tokens = len(sample.words)
@@ -87,13 +87,21 @@ class LimeTextExplainer(BaseLimeExplainer):
             kernel_width = np.sqrt(n_tokens) * self.kernel_width_factor
         )
         print("Begging EXPLAIN_INSTANCE")
-        return explainer.explain_instance(
-            data_row = np.ones(n_tokens),
-            predict_fn=self._make_predict_fn(sample, align_boxes),
-            num_samples = num_samples,
-            num_features = num_features,
-            labels = self.labels
-        )
+        if labels:
+            return explainer.explain_instance(
+                data_row = np.ones(n_tokens),
+                predict_fn=self._make_predict_fn(sample, align_boxes),
+                num_samples = num_samples,
+                num_features = num_features,
+                labels = self.labels
+            )
+        else:
+            return explainer.explain_instance(
+                data_row = np.ones(n_tokens),
+                predict_fn=self._make_predict_fn(sample, align_boxes),
+                num_samples = num_samples,
+                num_features = num_features,
+            )
 
 class LimeLayoutExplainer(LimeTextExplainer):
     """
