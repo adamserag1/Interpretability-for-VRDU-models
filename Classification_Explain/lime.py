@@ -87,7 +87,7 @@ class LimeTextExplainer(BaseLimeExplainer):
             kernel_width = np.sqrt(n_tokens) * self.kernel_width_factor
         )
         print("Begging EXPLAIN_INSTANCE")
-        if labels:
+        if self.labels:
             return explainer.explain_instance(
                 data_row = np.ones(n_tokens),
                 predict_fn=self._make_predict_fn(sample, align_boxes),
