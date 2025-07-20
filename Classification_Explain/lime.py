@@ -55,7 +55,7 @@ class LimeTextExplainer(BaseLimeExplainer):
         out = []
         itr = tqdm(range(0, len(samples), self.batch_size), desc = "[LIME] - Text")
         for i in itr:
-            out.append(self._predict(samples[i:i + self.batch_size], temp=2.0))
+            out.append(self._predict(samples[i:i + self.batch_size], temp=5.0))
         return np.vstack(out)
 
     def _make_predict_fn(self, sample: DocSample, align_boxes):
