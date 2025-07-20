@@ -30,8 +30,10 @@ class BaseLimeExplainer:
         return self.encode_fn(samples, self.device)
 
     @torch.no_grad
-    def _predict(self, samples):
+    def _predict(self, samples, temp=1.0):
         logits = self.model(**self._encode(samples)).logits
+        if temp:
+            scaled_logits = logits / temp
         return torch.softmax(logits, dim=-1).cpu().numpy()
 
     def explain(self, sample, **kwargs):
@@ -53,7 +55,7 @@ class LimeTextExplainer(BaseLimeExplainer):
         out = []
         itr = tqdm(range(0, len(samples), self.batch_size), desc = "[LIME] - Text")
         for i in itr:
-            out.append(self._predict(samples[i:i + self.batch_size]))
+            out.append(self._predict(samples[i:i + self.batch_size]), temp=2.0)
         return np.vstack(out)
 
     def _make_predict_fn(self, sample: DocSample, align_boxes):
