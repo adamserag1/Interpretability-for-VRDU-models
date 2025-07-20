@@ -174,7 +174,7 @@ class LimeVisionExplainer(BaseLimeExplainer):
         return fn
 
 
-    def explain(self, sample, *, num_samples = 8000, num_features = 30, hide_color=(255, 255, 255)):
+    def explain(self, sample, *, num_samples = 8000, num_features = 30, hide_color=(127, 127, 127)):
         explainer = LimeImageExplainer(random_state=0)
         img_np = np.array(sample.image)
 
