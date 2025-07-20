@@ -137,7 +137,7 @@ class LimeLayoutExplainer(LimeTextExplainer):
         return fn
 
 class LimeVisionExplainer(BaseLimeExplainer):
-    def __init__(self, model, encode_fn, *, n_segments = 200, compactness = 20.0, sigma = 1.0, batch_size = 32, device = None):
+    def __init__(self, model, encode_fn, label, *, n_segments = 200, compactness = 20.0, sigma = 1.0, batch_size = 32, device = None):
         super().__init__(model, encode_fn, device)
         self.seg_kwargs = dict(
             n_segments = n_segments,
@@ -146,6 +146,7 @@ class LimeVisionExplainer(BaseLimeExplainer):
             start_label = 1
         )
         self.batch_size = batch_size
+        self.label = label
 
     def _batched_predict(self, samples):
         out = []
@@ -173,7 +174,7 @@ class LimeVisionExplainer(BaseLimeExplainer):
         return fn
 
 
-    def explain(self, sample, *, num_samples = 8000, num_features = 30, hide_color=(127, 127, 127)):
+    def explain(self, sample, *, num_samples = 8000, num_features = 30, hide_color=(255, 255, 255)):
         explainer = LimeImageExplainer(random_state=0)
         img_np = np.array(sample.image)
 
@@ -181,7 +182,7 @@ class LimeVisionExplainer(BaseLimeExplainer):
             img_np,
             classifier_fn = self._make_predict_fn(sample),
             segmentation_fn = lambda img: slic(img, **self.seg_kwargs),
-            top_labels = 1,
+            top_labels = self.label,
             hide_color=hide_color,
             num_samples = num_samples,
             batch_size = self.batch_size
