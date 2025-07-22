@@ -111,8 +111,8 @@ class FidelityEvaluator:
         original_label_index = sample.label
         predict_fn = self._get_prediction_function(original_label_index)
 
-        comprehensiveness = calculate_comprehensiveness(predict_fn, sample, explanation, mask_token, top_k_fraction)
-        sufficiency = calculate_sufficiency(predict_fn, sample, explanation, mask_token, top_k_fraction)
+        comprehensiveness = calculate_comprehensiveness(predict_fn, sample, explanation, self.mask_token, top_k_fraction)
+        sufficiency = calculate_sufficiency(predict_fn, sample, explanation, self.mask_token, top_k_fraction)
 
         return {
             "comprehensiveness": comprehensiveness,
