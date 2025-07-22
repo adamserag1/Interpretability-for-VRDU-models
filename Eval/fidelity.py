@@ -11,7 +11,7 @@ from typing import List, Dict, Callable
 from vrdu_utils.module_types import DocSample
 
 
-def calculate_comprehensiveness(predict_fn, sample, explanation, top_k_fraction= 0.2):
+def calculate_comprehensiveness(predict_fn, sample, explanation, mask_token, top_k_fraction= 0.2):
     """
     Calculates the comprehensiveness score for a given explanation.
 
@@ -32,7 +32,7 @@ def calculate_comprehensiveness(predict_fn, sample, explanation, top_k_fraction=
     features_to_remove = {item[0] for item in sorted_features[:top_k]}
 
     # Create perturbed sample by removing top features
-    perturbed_words = [word if word not in features_to_remove else "[UNK]" for word in sample.words]
+    perturbed_words = [word if word not in features_to_remove else mask_token for word in sample.words]
     perturbed_sample = DocSample(image=sample.image, words=perturbed_words, bboxes=sample.bboxes, ner_tags=sample.ner_tags, label=sample.label)
 
     perturbed_prob = predict_fn(perturbed_sample)
@@ -40,7 +40,7 @@ def calculate_comprehensiveness(predict_fn, sample, explanation, top_k_fraction=
     return original_prob - perturbed_prob
 
 
-def calculate_sufficiency(predict_fn, sample, explanation, top_k_fraction= 0.2):
+def calculate_sufficiency(predict_fn, sample, explanation, mask_token, top_k_fraction= 0.2):
     """
     Calculates the sufficiency score for a given explanation.
 
@@ -64,7 +64,7 @@ def calculate_sufficiency(predict_fn, sample, explanation, top_k_fraction= 0.2):
     features_to_keep = {item[0] for item in sorted_features[:top_k]}
 
     # Create perturbed sample by keeping only top features
-    perturbed_words = [word if word in features_to_keep else self.mask_token for word in sample.words]
+    perturbed_words = [word if word in features_to_keep else mask_token for word in sample.words]
     print(perturbed_words)
     perturbed_sample = DocSample(image=sample.image, words=perturbed_words, bboxes=sample.bboxes, ner_tags=sample.ner_tags, label=sample.label)
 
@@ -111,8 +111,8 @@ class FidelityEvaluator:
         original_label_index = sample.label
         predict_fn = self._get_prediction_function(original_label_index)
 
-        comprehensiveness = calculate_comprehensiveness(predict_fn, sample, explanation, top_k_fraction)
-        sufficiency = calculate_sufficiency(predict_fn, sample, explanation, top_k_fraction)
+        comprehensiveness = calculate_comprehensiveness(predict_fn, sample, explanation, mask_token, top_k_fraction)
+        sufficiency = calculate_sufficiency(predict_fn, sample, explanation, mask_token, top_k_fraction)
 
         return {
             "comprehensiveness": comprehensiveness,
