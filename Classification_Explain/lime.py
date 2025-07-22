@@ -33,8 +33,9 @@ class BaseLimeExplainer:
     def _predict(self, samples, temp=1.0):
         logits = self.model(**self._encode(samples)).logits
         if temp:
-            scaled_logits = logits / temp
-        #return torch.softmax(scaled_logits, dim=-1).cpu().numpy()
+            scaled_logits = logits
+            # scaled_logits = logits / temp
+        return torch.softmax(scaled_logits, dim=-1).cpu().numpy()
         return scaled_logits.cpu().numpy()
 
     def explain(self, sample, **kwargs):
