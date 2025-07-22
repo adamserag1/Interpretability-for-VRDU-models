@@ -54,14 +54,18 @@ def calculate_sufficiency(predict_fn, sample, explanation, top_k_fraction= 0.2):
         The sufficiency score.
     """
     original_prob = predict_fn(sample)
-
+    print(explanation.items())
     # Get top-k features to keep
     sorted_features = sorted(explanation.items(), key=lambda item: item[1], reverse=True)
+    print(f'length of sorted feauters {len(sorted_features)}')
+    print(sorted_features)
     top_k = int(len(sorted_features) * top_k_fraction)
+    print(f'length of top k {len(top_k)}')
     features_to_keep = {item[0] for item in sorted_features[:top_k]}
 
     # Create perturbed sample by keeping only top features
-    perturbed_words = [word if word in features_to_keep else "[UNK]" for word in sample.words]
+    perturbed_words = [word if word in features_to_keep else self.mask_token for word in sample.words]
+    print(perturbed_words)
     perturbed_sample = DocSample(image=sample.image, words=perturbed_words, bboxes=sample.bboxes, ner_tags=sample.ner_tags, label=sample.label)
 
     perturbed_prob = predict_fn(perturbed_sample)
@@ -73,9 +77,10 @@ class FidelityEvaluator:
     """
     A class to evaluate the fidelity of explanations for a given model.
     """
-    def __init__(self, model, encode_fn, device=None):
+    def __init__(self, model, encode_fn, mask_token = "[UNK]", device=None):
         self.model = model.eval()
         self.encode_fn = encode_fn
+        self.mask_token = mask_token
         self.device = torch.device(device or "cuda" if torch.cuda.is_available() else "cpu")
         self.model.to(self.device)
 
