@@ -9,7 +9,7 @@ from tqdm.auto import tqdm
 import numpy as np
 from vrdu_utils.module_types import DocSample
 from vrdu_utils.encoders import make_layoutlmv3_encoder, make_bros_encoder
-from Classification_Explain.fidelity import FidelityEvaluator
+from Eval.fidelity import FidelityEvaluator
 
 
 class ModelWrapper:
