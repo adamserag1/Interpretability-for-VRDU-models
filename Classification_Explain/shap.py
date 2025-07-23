@@ -140,6 +140,7 @@ class SHAPTextExplainer(BaseShapExplainer):
             tokenizer=sentinel_tokenizer,
             mask_token=self.mask_token,
         )
+        print(self.algorithm)
         explainer = shap.Explainer(
             fn,
             masker=masker,
