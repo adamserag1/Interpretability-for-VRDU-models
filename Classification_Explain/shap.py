@@ -73,10 +73,12 @@ class SHAPTextExplainer(BaseShapExplainer):
         mask_token: str = "[UNK]",
         device: str = None,
         batch_size: int = 16,
+        algorithm: str = 'partition'
     ):
-        super().__init__(model, encode_fn, device)
+        super().__init__(model, encode_fn, device, algorithm)
         self.mask_token = mask_token
         self.batch_size = batch_size
+        self.algorithm = algorithm
 
     def _batched_predict(self, samples: list[DocSample]) -> np.ndarray:
         """
