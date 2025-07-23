@@ -75,7 +75,7 @@ class SHAPTextExplainer(BaseShapExplainer):
         batch_size: int = 16,
         algorithm: str = 'partition'
     ):
-        super().__init__(model, encode_fn, device, algorithm)
+        super().__init__(model, encode_fn, algorithm, device)
         self.mask_token = mask_token
         self.batch_size = batch_size
         self.algorithm = algorithm
