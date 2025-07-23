@@ -147,7 +147,7 @@ class SHAPTextExplainer(BaseShapExplainer):
             fn,
             masker=masker,
             algorithm=self.algorithm,
-            outputs=[sample.label],
+            # outputs=[sample.label],
             output_names=self.class_names,
         )
         # build sentinel-delimited doc for SHAP
