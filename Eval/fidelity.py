@@ -54,10 +54,8 @@ def calculate_sufficiency(predict_fn, sample, explanation, mask_token, top_k_fra
         The sufficiency score.
     """
     original_prob = predict_fn(sample)
-    print(explanation.items())
     # Get top-k features to keep
     sorted_features = sorted(explanation.items(), key=lambda item: item[1], reverse=True)
-    print(sorted_features)
     top_k = int(len(sorted_features) * top_k_fraction)
 
     features_to_keep = {item[0] for item in sorted_features[:top_k]}
