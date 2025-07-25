@@ -19,8 +19,8 @@ def make_layoutlmv3_encoder(processor, ner = False, max_length: int = 512):
         for s in samples:
             w, h = s.image.size
             boxes.append([normalize_bbox(b, w, h) for b in s.bboxes])
-        print(len(boxes))
-        print(len(words))
+        # print(len(boxes))
+        # print(len(words))
         print(boxes)
         print(words)
         print(samples[0].words)
