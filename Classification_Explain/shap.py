@@ -2,6 +2,8 @@ import torch
 import numpy as np
 import shap
 from vrdu_utils.module_types import DocSample
+from PIL import Image
+
 
 DELIMITER = "|~|"
 
