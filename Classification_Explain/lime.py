@@ -37,6 +37,7 @@ class BaseLimeExplainer:
         if self.model == 'BROS':
             logits_loss_dict = self.model(**self._encode(samples))
             logits = logits_loss_dict['logits']
+            print(logits)
         if temp:
             scaled_logits = logits
             # scaled_logits = logits / temp
