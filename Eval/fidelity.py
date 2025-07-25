@@ -92,7 +92,10 @@ class FidelityEvaluator:
         @torch.no_grad()
         def predict_fn(sample: DocSample):
             encoded = self.encode_fn([sample], self.device)
-            logits = self.model(**encoded).logits
+            try:
+                logits = self.model(**encoded).logits
+            except:
+                logits = self.model(**encoded)["logits"]
             probs = torch.softmax(logits, dim=-1)
             return probs[0, original_label_index].item()
         return predict_fn
