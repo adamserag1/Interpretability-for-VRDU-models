@@ -45,6 +45,7 @@ class BaseShapExplainer:
 
     @torch.no_grad()
     def _predict(self, samples, temp=1.0):
+        print(self.model(**self._encode(samples))) # Debugging
         logits = self.model(**self._encode(samples)).logits
         if temp:
             scaled_logits = logits
