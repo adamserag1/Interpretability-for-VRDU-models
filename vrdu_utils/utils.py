@@ -1,9 +1,10 @@
 from __future__ import annotations
 import torch
 from PIL import Image, ImageDraw
-from matplotlib import cm
+from matplotlib import cm, pyplot as plt
 from vrdu_utils.module_types import *
 from torch.utils.data import DataLoader, Dataset
+
 
 def to_fp16(batch, device):
     '''
@@ -163,3 +164,29 @@ class DocSampleDataset(Dataset):
 
     def __len__(self):
         return len(self.ds)
+
+
+def display_image_grid(images, grid_size=(2, 2), figsize=(10, 10)):
+    """
+    Display a list of PIL images in a grid using matplotlib.
+
+    Parameters:
+    - images: List of PIL.Image.Image objects (exactly 4 for a 2x2 grid).
+    - grid_size: Tuple of (rows, cols) for the grid layout (default: (2, 2)).
+    - figsize: Tuple of (width, height) for the figure size in inches.
+    """
+    if len(images) != grid_size[0] * grid_size[1]:
+        raise ValueError(f"Expected {grid_size[0] * grid_size[1]} images, got {len(images)}")
+
+    # Create a figure with subplots
+    fig, axes = plt.subplots(grid_size[0], grid_size[1], figsize=figsize)
+    axes = axes.flatten()  # Flatten the 2D array of axes for easy iteration
+
+    for idx, (img, ax) in enumerate(zip(images, axes)):
+        # Convert PIL image to displayable format
+        ax.imshow(img)
+        ax.set_title(f"Image {idx + 1}")
+        ax.axis('off')  # Hide axes for cleaner display
+
+    plt.tight_layout()  # Adjust spacing between images
+    plt.show()
