@@ -103,13 +103,12 @@ class SHAPTextExplainer(BaseShapExplainer):
             for z in z_bin_mat:
                 # mask tokens
                 print(sample.words)
-                words = [wrd if keep else self.mask_token
-                         for wrd, keep in zip(sample.words, z)]
+                print(z)
+                words = [wrd if keep else self.mask_token for wrd, keep in zip(sample.words, z)]
                 print(words)
                 # optionally zero out boxes
                 if align_boxes:
-                    boxes = [b if keep else [0, 0, w, h]
-                             for b, keep in zip(sample.bboxes, z)]
+                    boxes = [b if keep else [0, 0, w, h] for b, keep in zip(sample.bboxes, z)]
                 else:
                     boxes = sample.bboxes
                 perturbed.append(
