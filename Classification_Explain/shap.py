@@ -102,22 +102,17 @@ class SHAPTextExplainer(BaseShapExplainer):
             w, h = sample.image.size
             for z in z_bin_mat:
                 # mask tokens
-                print(sample.words)
-                print(z)
                 words = [wrd if keep else self.mask_token for wrd, keep in zip(sample.words, z)]
-                print(words)
                 # optionally zero out boxes
                 if align_boxes:
                     boxes = [b if keep else [0, 0, w, h] for b, keep in zip(sample.bboxes, z)]
                 else:
                     boxes = sample.bboxes
-                print(len(words))
-                print(len(boxes[:len(words)]))
                 perturbed.append(
                     DocSample(
                         image=sample.image,
                         words=words,
-                        bboxes=boxes[:(len(words))],
+                        bboxes=boxes, # [:(len(words))]
                         ner_tags=sample.ner_tags,
                         label=sample.label,
                     )
