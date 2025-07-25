@@ -115,7 +115,7 @@ class SHAPTextExplainer(BaseShapExplainer):
                     DocSample(
                         image=sample.image,
                         words=words,
-                        bboxes=boxes,
+                        bboxes=boxes[:len(words)],
                         ner_tags=sample.ner_tags,
                         label=sample.label,
                     )
