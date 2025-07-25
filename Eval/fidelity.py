@@ -24,7 +24,7 @@ def calculate_comprehensiveness(predict_fn, sample, explanation, mask_token, top
     Returns:
         The comprehensiveness score.
     """
-    original_prob = predict_fn([sample])
+    original_prob = predict_fn(sample)
 
     # Get top-k features to remove
     sorted_features = sorted(explanation.items(), key=lambda item: item[1], reverse=True)
@@ -35,7 +35,7 @@ def calculate_comprehensiveness(predict_fn, sample, explanation, mask_token, top
     perturbed_words = [word if word not in features_to_remove else mask_token for word in sample.words]
     perturbed_sample = DocSample(image=sample.image, words=perturbed_words, bboxes=sample.bboxes, ner_tags=sample.ner_tags, label=sample.label)
 
-    perturbed_prob = predict_fn([perturbed_sample])
+    perturbed_prob = predict_fn(perturbed_sample)
 
     return original_prob - perturbed_prob
 
@@ -53,7 +53,7 @@ def calculate_sufficiency(predict_fn, sample, explanation, mask_token, top_k_fra
     Returns:
         The sufficiency score.
     """
-    original_prob = predict_fn([sample])
+    original_prob = predict_fn(sample)
     print(explanation.items())
     # Get top-k features to keep
     sorted_features = sorted(explanation.items(), key=lambda item: item[1], reverse=True)
@@ -69,7 +69,7 @@ def calculate_sufficiency(predict_fn, sample, explanation, mask_token, top_k_fra
     print(perturbed_words)
     perturbed_sample = DocSample(image=sample.image, words=perturbed_words, bboxes=sample.bboxes, ner_tags=sample.ner_tags, label=sample.label)
 
-    perturbed_prob = predict_fn([perturbed_sample])
+    perturbed_prob = predict_fn(perturbed_sample)
     print(f'original probability: {original_prob}, pertrubed_probability: {perturbed_prob}')
     return original_prob - perturbed_prob
 
