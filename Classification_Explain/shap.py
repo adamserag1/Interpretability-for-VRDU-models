@@ -111,7 +111,10 @@ class SHAPTextExplainer(BaseShapExplainer):
                     boxes = [b if keep else [0, 0, w, h] for b, keep in zip(sample.bboxes, z)]
                 else:
                     boxes = sample.bboxes
+                print(len(words))
                 perturbed.append(
+                print(len(boxes[:len(words)]))
+
                     DocSample(
                         image=sample.image,
                         words=words,
