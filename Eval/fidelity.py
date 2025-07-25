@@ -36,7 +36,7 @@ def calculate_comprehensiveness(predict_fn, sample, explanation, mask_token, top
     perturbed_sample = DocSample(image=sample.image, words=perturbed_words, bboxes=sample.bboxes, ner_tags=sample.ner_tags, label=sample.label)
     print(f'Removed top {top_k} words')
     perturbed_prob = predict_fn(perturbed_sample)
-
+    print(f'[COMP] original probability: {original_prob}, pertrubed_probability: {perturbed_prob}')
     return original_prob - perturbed_prob
 
 
@@ -67,7 +67,7 @@ def calculate_sufficiency(predict_fn, sample, explanation, mask_token, top_k_fra
 
     perturbed_prob = predict_fn(perturbed_sample)
     print(f'Removed top {top_k} words')
-    print(f'original probability: {original_prob}, pertrubed_probability: {perturbed_prob}')
+    print(f'[SUF]original probability: {original_prob}, pertrubed_probability: {perturbed_prob}')
     return original_prob - perturbed_prob
 
 
