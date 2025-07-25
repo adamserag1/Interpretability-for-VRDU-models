@@ -154,3 +154,33 @@ class SHAPTextExplainer(BaseShapExplainer):
         doc = DELIMITER.join(sample.words)
         # compute and return first (and only) explanation
         return explainer([doc], max_evals=num_samples)[0]
+
+    class SHAPLayoutExplainer(SHAPTextExplainer):
+        def _make_predict_fn(self, sample: DocSample, align_boxes: bool = None):
+            def fn(z_bin_mat: np.ndarray) -> np.ndarray:
+                perturbed = []
+                w, h = sample.image.size
+                for z in z_bin_mat:
+                    # keep words or replace with mask token (same as text SHAP)
+                    words = [wrd if keep else self.mask_token for wrd, keep in zip(sample.words, z)]
+                    # replace bounding box with full page for masked tokens
+                    boxes = [b if keep else [0, 0, w, h] for b, keep in zip(sample.bboxes, z)]
+                    perturbed.append(
+                        DocSample(
+                            image=sample.image,
+                            words=words,
+                            bboxes=boxes,
+                            ner_tags=sample.ner_tags,
+                            label=sample.label,
+                        )
+                    )
+                return self._batched_predict(perturbed)
+
+            return fn
+
+        def explain(self, sample: DocSample, num_samples: int = 2000):
+            fn = self._make_predict_fn(sample)
+            masker = shap.maskers.Text(tokenizer=sentinel_tokenizer, mask_token=self.mask_token)
+            explainer = shap.Explainer(fn, masker=masker, algorithm=self.algorithm, output_names=self.class_names)
+            doc = DELIMITER.join(sample.words)
+            return explainer([doc], max_evals=num_samples)[0]
