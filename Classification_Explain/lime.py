@@ -31,13 +31,13 @@ class BaseLimeExplainer:
 
     @torch.no_grad
     def _predict(self, samples, temp=1.0):
-        print(self.model(**self._encode(samples))) # Debugging
-        if self.model == 'LLMV3':
+        # print(self.model(**self._encode(samples))) # Debugging
+        try:
             logits = self.model(**self._encode(samples)).logits
-        if self.model == 'BROS':
+        except:
             logits_loss_dict = self.model(**self._encode(samples))
             logits = logits_loss_dict['logits']
-            print(logits)
+            # print(logits)
         if temp:
             scaled_logits = logits
             # scaled_logits = logits / temp
