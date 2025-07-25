@@ -23,6 +23,7 @@ def make_layoutlmv3_encoder(processor, ner = False, max_length: int = 512):
         print(len(words))
         print(boxes)
         print(words)
+        print(samples[0].words)
         if not ner:
             enc = processor(
                 images,
