@@ -46,7 +46,11 @@ class BaseShapExplainer:
     @torch.no_grad()
     def _predict(self, samples, temp=1.0):
         print(self.model(**self._encode(samples))) # Debugging
-        logits = self.model(**self._encode(samples)).logits
+        if self.model == 'LLMV3':
+            logits = self.model(**self._encode(samples)).logits
+        if self.model == 'BROS':
+            logits_loss_dict = self.model(**self._encode(samples))
+            logits = logits_loss_dict['logits']
         if temp:
             scaled_logits = logits
             # scaled_logits = logits / temp
