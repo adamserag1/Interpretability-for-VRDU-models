@@ -57,12 +57,10 @@ def calculate_sufficiency(predict_fn, sample, explanation, mask_token, top_k_fra
     print(explanation.items())
     # Get top-k features to keep
     sorted_features = sorted(explanation.items(), key=lambda item: item[1], reverse=True)
-    print(f'length of sorted features {len(sorted_features)}')
     print(sorted_features)
     top_k = int(len(sorted_features) * top_k_fraction)
 
     features_to_keep = {item[0] for item in sorted_features[:top_k]}
-    print(f'length of top k {len(features_to_keep)}')
     print(features_to_keep)
 
     # Create perturbed sample by keeping only top features
@@ -71,7 +69,7 @@ def calculate_sufficiency(predict_fn, sample, explanation, mask_token, top_k_fra
     print(perturbed_words)
     perturbed_sample = DocSample(image=sample.image, words=perturbed_words, bboxes=sample.bboxes, ner_tags=sample.ner_tags, label=sample.label)
 
-    perturbed_prob = predict_fn(perturbed_sample)
+    perturbed_prob = predict_fn([perturbed_sample])
     print(f'original probability: {original_prob}, pertrubed_probability: {perturbed_prob}')
     return original_prob - perturbed_prob
 
