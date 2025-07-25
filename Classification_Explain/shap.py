@@ -184,3 +184,66 @@ class SHAPLayoutExplainer(SHAPTextExplainer):
         explainer = shap.Explainer(fn, masker=masker, algorithm=self.algorithm, output_names=self.class_names)
         doc = DELIMITER.join(sample.words)
         return explainer([doc], max_evals=num_samples)[0]
+
+
+
+class SHAPVisionExplainer(BaseShapExplainer):
+    def __init__(self,model,encode_fn,*,label = None,mask_value = "inpaint_telea",batch_size = 32,algorithm = "partition",device = None,):
+        super().__init__(model, encode_fn, algorithm=algorithm, device=device)
+        self.mask_value = mask_value
+        self.batch_size = batch_size
+        self.label = label  # restrict probability vector if desired
+
+    # ---------------------------------------------------------------------
+    # internal helpers
+    # ---------------------------------------------------------------------
+    def _batched_predict(self, samples):
+        out = []
+        for i in range(0, len(samples), self.batch_size):
+            out.append(self._predict(samples[i : i + self.batch_size]))
+        return np.vstack(out)
+
+    def _make_predict_fn(self, template: DocSample):
+        """Return f(images_np) → probs.
+
+        *images_np* is a `(N, H, W, C)` array emitted by SHAP.  We wrap each array
+        into a `DocSample`, keeping the *words* and *bboxes* from *template*
+        unchanged.
+        """
+
+        def fn(imgs: np.ndarray) -> np.ndarray:
+            perturbed = [
+                DocSample(
+                    image=Image.fromarray(img.astype(np.uint8)),
+                    words=template.words,
+                    bboxes=template.bboxes,
+                    ner_tags=template.ner_tags,
+                    label=template.label,
+                )
+                for img in imgs
+            ]
+            probs = self._batched_predict(perturbed)
+
+            if self.label is not None:
+                probs = probs[:, self.label][:, None]
+            return probs
+
+        return fn
+
+    def explain(self,sample: DocSample,*,num_samples = 8000,max_evals = None, max_batch = 64):
+        img_np = np.asarray(sample.image)
+        if img_np.ndim == 2:  # greyscale → (H, W, 1)
+            img_np = img_np[..., None]
+
+        masker = shap.maskers.Image(self.mask_value, shape=img_np.shape)
+        explainer = shap.Explainer(
+            self._make_predict_fn(sample),
+            masker=masker,
+            algorithm=self.algorithm,
+            output_names=self.class_names,
+        )
+
+        # SHAP expects a *batch* → wrap in list
+        max_evals = max_evals or num_samples
+        explanation = explainer([img_np], max_evals=max_evals, batch_size=max_batch)[0]
+        return explanation
