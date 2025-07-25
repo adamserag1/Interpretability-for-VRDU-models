@@ -112,9 +112,8 @@ class SHAPTextExplainer(BaseShapExplainer):
                 else:
                     boxes = sample.bboxes
                 print(len(words))
-                perturbed.append(
                 print(len(boxes[:len(words)]))
-
+                perturbed.append(
                     DocSample(
                         image=sample.image,
                         words=words,
