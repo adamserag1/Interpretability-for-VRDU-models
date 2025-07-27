@@ -124,6 +124,7 @@ class SHAPTextExplainer(BaseShapExplainer):
             ds_batch = []
             for sent in perturbed_texts:
                 words = sent.split()  # same whitespace delimiter SHAP used
+                print(words)
                 # boxes = []
                 # for keep, (wrd, box) in zip(words, zip(sample.words, sample.bboxes)):
                 #     if align_boxes and keep == self.mask_token:
