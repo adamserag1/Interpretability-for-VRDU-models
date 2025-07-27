@@ -200,12 +200,13 @@ class SHAPTextExplainer(BaseShapExplainer):
             fn,
             masker=masker,
             algorithm=self.algorithm,
+            link=shap.links.identity,
             output_names=self.class_names,
         )
         # build sentinel-delimited doc for SHAP
         doc = " ".join(sample.words)
         # compute and return first (and only) explanation
-        return explainer([doc], max_evals=num_samples)[0]
+        return explainer([doc], max_evals=num_samples)
 
 class SHAPLayoutExplainer(SHAPTextExplainer):
     def _make_predict_fn(self, sample: DocSample, align_boxes: bool = None):
