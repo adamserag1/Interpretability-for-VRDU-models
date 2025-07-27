@@ -39,7 +39,7 @@ def make_layoutlmv3_tokenizer_wrapper(tkn: LayoutLMv3TokenizerFast,
 
     return wrapped
 
-DELIMITER = "|~|"
+DELIMITER = " "
 
 def safe_split(doc_str: str) -> list[str]:
     """Split a sentinel-delimited document string into tokens."""
@@ -197,7 +197,6 @@ class SHAPTextExplainer(BaseShapExplainer):
             fn,
             masker=masker,
             algorithm=self.algorithm,
-            # outputs=[sample.label],
             output_names=self.class_names,
         )
         # build sentinel-delimited doc for SHAP
