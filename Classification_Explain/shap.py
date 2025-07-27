@@ -9,29 +9,31 @@ from transformers import LayoutLMv3TokenizerFast
 
 def make_layoutlmv3_tokenizer_wrapper(tkn: LayoutLMv3TokenizerFast,
                                       dummy_box=[0, 0, 0, 0]):
-    """
-    Return a callable that behaves like `tkn` but guarantees that
-    `text` is a list[str] whenever `boxes` is supplied.
-    """
     @wraps(tkn)
     def wrapped(texts, **kwargs):
 
-        def to_word_list(x):
+        # --- ❶ Let SHAP's empty-string probe pass straight through ----------
+        if isinstance(texts, str) and texts == "" and "boxes" not in kwargs:
+            return tkn(texts, **kwargs)          # no changes, no boxes
+
+        # --- ❷ Ensure words ↔ boxes length match ---------------------------
+        def to_words(x):
             return x if isinstance(x, (list, tuple)) else x.split()
 
-        # single example --------------------------------------------------
-        if isinstance(texts, str):
-            words = to_word_list(texts)
-            boxes = kwargs.get("boxes") or [[dummy_box] * len(words)]
-            kwargs["boxes"] = boxes
-            return tkn(words, **kwargs, is_split_into_words=True)
+        if isinstance(texts, str):               # single example
+            words = to_words(texts)
+            kwargs.setdefault("boxes", [dummy_box] * len(words))
+            return tkn(words,
+                       **kwargs,
+                       is_split_into_words=True)
 
-        # batch -----------------------------------------------------------
-        else:
-            word_batches = [to_word_list(s) for s in texts]
-            if "boxes" not in kwargs:
-                kwargs["boxes"] = [[dummy_box] * len(seq) for seq in word_batches]
-            return tkn(word_batches, **kwargs, is_split_into_words=True)
+        else:                                    # batch
+            word_batches = [to_words(s) for s in texts]
+            kwargs.setdefault("boxes",
+                              [[dummy_box] * len(seq) for seq in word_batches])
+            return tkn(word_batches,
+                       **kwargs,
+                       is_split_into_words=True)
 
     return wrapped
 
