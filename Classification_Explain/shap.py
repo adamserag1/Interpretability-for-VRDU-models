@@ -89,7 +89,7 @@ class BaseShapExplainer:
         if temp:
             scaled_logits = logits
             # scaled_logits = logits / temp
-        probs = torch.softamx(logits, dim=-1)
+        probs = torch.softmax(logits, dim=-1)
         eps = 1e-16
         log_odds = torch.log(probs / (1.0 - probs * eps))
         return log_odds.cpu().numpy()
