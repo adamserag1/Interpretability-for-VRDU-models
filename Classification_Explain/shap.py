@@ -117,7 +117,7 @@ class SHAPTextExplainer(BaseShapExplainer):
             out.append(self._predict(samples[i : i + self.batch_size]))
         return np.vstack(out)
 
-    def _make_predict_fn(self, sample: DocSample, align_boxes: bool):
+    def _make_predict_fn(self, sample: DocSample, align_boxes: bool = False):
         W, H = sample.image.size  # needed if you blank boxes
 
         def fn(perturbed_texts: list[str]):  # NOT a z-matrix!
