@@ -131,28 +131,34 @@ class SHAPTextExplainer(BaseShapExplainer):
         def fn(z_bin_mat: np.ndarray) -> np.ndarray:
             perturbed = []
             w, h = sample.image.size
-            print(f'SHAP{z_bin_mat}')
-            print("z_bin_mat shape:", z_bin_mat.shape)
-            # print("First 3 z masks:")
-            # for i in range(3):
-            #     print(f"z[{i}]:", z_bin_mat[i])
-            for z in z_bin_mat:
-                words = [wrd if keep else self.mask_token for wrd, keep in zip(sample.words, z)]
-                # optionally zero out boxes
-                if align_boxes:
-                    boxes = [b if keep else [0, 0, w, h] for b, keep in zip(sample.bboxes, z)]
-                else:
-                    boxes = sample.bboxes
-                perturbed.append(
-                    DocSample(
-                        image=sample.image,
-                        words=words,
-                        bboxes=boxes,#[:(len(words))],
-                        ner_tags=sample.ner_tags,
-                        label=sample.label,
-                    )
+            perturbed.append(
+                DocSample(
+                    image=sample.image,
+                    words=z_bin_mat,
+                    bboxes=sample.bboxes,#[:(len(words))],
+                    ner_tags=sample.ner_tags,
+                    label=sample.label,
                 )
+            )
             return self._batched_predict(perturbed)
+
+            # for z in z_bin_mat:
+            #     words = [wrd if keep else self.mask_token for wrd, keep in zip(sample.words, z)]
+            #     # optionally zero out boxes
+            #     if align_boxes:
+            #         boxes = [b if keep else [0, 0, w, h] for b, keep in zip(sample.bboxes, z)]
+            #     else:
+            #         boxes = sample.bboxes
+            #     perturbed.append(
+            #         DocSample(
+            #             image=sample.image,
+            #             words=words,
+            #             bboxes=boxes,#[:(len(words))],
+            #             ner_tags=sample.ner_tags,
+            #             label=sample.label,
+            #         )
+            #     )
+            # return self._batched_predict(perturbed)
 
         return fn
 
