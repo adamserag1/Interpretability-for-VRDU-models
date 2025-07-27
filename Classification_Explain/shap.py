@@ -98,7 +98,7 @@ class SHAPTextExplainer(BaseShapExplainer):
         self.batch_size = batch_size
         self.algorithm = algorithm
         if isinstance(tokenizer, LayoutLMv3TokenizerFast):
-           self.tokenizer = tokenizer
+           self.tokenizer = make_layoutlmv3_tokenizer_wrapper(tokenizer)
         else:
             self.tokenizer = tokenizer
     def _batched_predict(self, samples: list[DocSample]) -> np.ndarray:
