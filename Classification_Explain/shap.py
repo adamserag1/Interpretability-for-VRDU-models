@@ -169,7 +169,8 @@ class SHAPTextExplainer(BaseShapExplainer):
         """
         fn = self._make_predict_fn(sample, align_boxes)
         # background: all-masked
-        background = np.zeros((1, len(sample.words)))
+        n_tokens = len(sample.words)
+        background = np.random.randint(0, 2, size=(200, n_tokens)),
         print(sample.words)
         masker = shap.maskers.Text(
             tokenizer=self.tokenizer,
@@ -180,7 +181,7 @@ class SHAPTextExplainer(BaseShapExplainer):
 
         explainer = shap.Explainer(
             fn,
-            masker=masker,
+            masker=background,
             algorithm=self.algorithm,
             # outputs=[sample.label],
             output_names=self.class_names,
