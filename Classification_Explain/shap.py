@@ -105,9 +105,16 @@ class SHAPTextExplainer(BaseShapExplainer):
         def fn(z_bin_mat: np.ndarray) -> np.ndarray:
             perturbed = []
             w, h = sample.image.size
+            print(z_bin_mat)
             for z in z_bin_mat:
-                # mask tokens
+                # mask tokens # HERE HELLO !!!!!!!!!!!!!!!!!!!!!!!!!
+                # BOXE[:len(words)] is FISHY!!!!!!
+                # HOW CAN YOU JUST PUT THE LENGTH OF BOXES???
+                # SHOULDNT REST OF TOKENS BE <mask>?????
+                # ASK CHATGPT (very important)
+                # print(z_bin_mat)
                 words = [wrd if keep else self.mask_token for wrd, keep in zip(sample.words, z)]
+                print(len(words))
                 # optionally zero out boxes
                 if align_boxes:
                     boxes = [b if keep else [0, 0, w, h] for b, keep in zip(sample.bboxes, z)]

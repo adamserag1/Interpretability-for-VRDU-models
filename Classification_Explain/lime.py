@@ -66,11 +66,14 @@ class LimeTextExplainer(BaseLimeExplainer):
         return np.vstack(out)
 
     def _make_predict_fn(self, sample: DocSample, align_boxes):
+
         def fn(z_bin_list):
             perturbed = []
+            print(z_bin_list)
             w, h = sample.image.size
             for z in z_bin_list:
                 words = [w if z_i else self.mask_token for w, z_i in zip(sample.words, z)]
+                print(len(words))
                 if align_boxes:
                     boxes = [b if z_i else [0,0,w,h] for b, z_i in zip(sample.bboxes, z)]
                 else:
