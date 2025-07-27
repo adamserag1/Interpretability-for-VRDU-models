@@ -3,7 +3,16 @@ import numpy as np
 import shap
 from vrdu_utils.module_types import DocSample
 from PIL import Image
+from transformers import LayoutLMv3TokenizerFast
 
+def make_layoutlmv3_tokenizer_wrapper(base_tokenizer):
+    def wrapped(texts, **kwargs):
+        if isinstance(texts, str):
+            texts = texts.strip().split()  # or use nltk.word_tokenize if needed
+        elif isinstance(texts, list) and isinstance(texts[0], str):
+            texts = [t.strip().split() for t in texts]
+        return base_tokenizer(texts, **kwargs)
+    return wrapped
 
 DELIMITER = "|~|"
 
@@ -88,7 +97,10 @@ class SHAPTextExplainer(BaseShapExplainer):
         self.mask_token = mask_token
         self.batch_size = batch_size
         self.algorithm = algorithm
-        self.tokenizer = tokenizer
+        if isinstance(tokenizer, LayoutLMv3TokenizerFast):
+           self.tokenizer = tokenizer
+        else:
+            self.tokenizer = tokenizer
     def _batched_predict(self, samples: list[DocSample]) -> np.ndarray:
         """
         Batch predictions over DocSample list to avoid OOM.
@@ -108,12 +120,6 @@ class SHAPTextExplainer(BaseShapExplainer):
             w, h = sample.image.size
             print(f'SHAP{z_bin_mat}')
             for z in z_bin_mat:
-                # mask tokens # HERE HELLO !!!!!!!!!!!!!!!!!!!!!!!!!
-                # BOXE[:len(words)] is FISHY!!!!!!
-                # HOW CAN YOU JUST PUT THE LENGTH OF BOXES???
-                # SHOULDNT REST OF TOKENS BE <mask>?????
-                # ASK CHATGPT (very important)
-                # print(z_bin_mat)
                 words = [wrd if keep else self.mask_token for wrd, keep in zip(sample.words, z)]
                 print(words)
                 # optionally zero out boxes
