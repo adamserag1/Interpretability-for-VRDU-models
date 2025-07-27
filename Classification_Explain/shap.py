@@ -192,7 +192,7 @@ class SHAPTextExplainer(BaseShapExplainer):
         # build sentinel-delimited doc for SHAP
         doc = " ".join(sample.words)
         # compute and return first (and only) explanation
-        return explainer([sample.words], max_evals=num_samples)[0]
+        return explainer([doc], max_evals=num_samples)[0]
 
 class SHAPLayoutExplainer(SHAPTextExplainer):
     def _make_predict_fn(self, sample: DocSample, align_boxes: bool = None):
