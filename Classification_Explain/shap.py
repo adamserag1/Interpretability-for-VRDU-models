@@ -158,6 +158,7 @@ class SHAPTextExplainer(BaseShapExplainer):
             collapse_mask_token=False
         )
         print(self.algorithm)
+
         explainer = shap.Explainer(
             fn,
             masker=masker,
@@ -168,6 +169,7 @@ class SHAPTextExplainer(BaseShapExplainer):
         # build sentinel-delimited doc for SHAP
         doc = "".join(sample.words)
         # compute and return first (and only) explanation
+        print([doc])
         return explainer([doc], max_evals=num_samples)[0]
 
 class SHAPLayoutExplainer(SHAPTextExplainer):
