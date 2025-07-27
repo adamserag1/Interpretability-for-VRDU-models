@@ -26,8 +26,7 @@ def make_layoutlmv3_tokenizer_wrapper(tkn: LayoutLMv3TokenizerFast,
             if "boxes" not in kwargs:
                 kwargs["boxes"] = [dummy_box] * len(words)
             return tkn(words,
-                       **kwargs,
-                       is_split_into_words=True)
+                       **kwargs)
 
         # ---------------- batch -------------------------
         batch_words = [_to_words(s) for s in texts]  # list[list[str]]
@@ -36,8 +35,7 @@ def make_layoutlmv3_tokenizer_wrapper(tkn: LayoutLMv3TokenizerFast,
                 [dummy_box] * len(seq) for seq in batch_words
             ]
         return tkn(batch_words,
-                   **kwargs,
-                   is_split_into_words=True)
+                   **kwargs)
 
     return wrapped
 
