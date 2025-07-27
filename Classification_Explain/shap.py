@@ -3,15 +3,28 @@ import numpy as np
 import shap
 from vrdu_utils.module_types import DocSample
 from PIL import Image
+import nltk
 from transformers import LayoutLMv3TokenizerFast
 
 def make_layoutlmv3_tokenizer_wrapper(base_tokenizer):
     def wrapped(texts, **kwargs):
+        # Handle SHAP's special call to tokenizer("")
+        if isinstance(texts, str) and texts.strip() == "":
+            return {"input_ids": [base_tokenizer.cls_token_id, base_tokenizer.sep_token_id]}
+
+        # Normal SHAP usage — a real sentence like "the dog barked"
         if isinstance(texts, str):
-            texts = texts.strip().split()  # or use nltk.word_tokenize if needed
+            tokens = texts.strip().split()
+            dummy_boxes = [[0, 0, 0, 0]] * len(tokens)
+            return base_tokenizer(tokens, boxes=dummy_boxes, **kwargs)
+
         elif isinstance(texts, list) and isinstance(texts[0], str):
-            texts = [t.strip().split() for t in texts]
-        return base_tokenizer(texts, **kwargs)
+            token_lists = [t.strip().split() for t in texts]
+            dummy_boxes = [[[0, 0, 0, 0]] * len(toks) for toks in token_lists]
+            return base_tokenizer(token_lists, boxes=dummy_boxes, **kwargs)
+
+        else:
+            raise ValueError("SHAP-wrapper: input must be str or list of str")
     return wrapped
 
 DELIMITER = "|~|"
