@@ -121,6 +121,8 @@ class SHAPTextExplainer(BaseShapExplainer):
             print(f'SHAP{z_bin_mat}')
             for z in z_bin_mat:
                 words = [wrd if keep else self.mask_token for wrd, keep in zip(sample.words, z)]
+                print(len(words))
+                print(len(sample.boxes))
                 print(words)
                 # optionally zero out boxes
                 if align_boxes:
