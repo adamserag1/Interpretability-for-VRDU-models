@@ -88,8 +88,8 @@ class BaseShapExplainer:
         return [self.explain(s, **kwargs) for s in samples]
 
 
-
 class SHAPTextExplainer(BaseShapExplainer):
+
     """
     SHAP explainer for text modality, mirroring LimeTextExplainer structure.
     Uses shap.Explainer with Text masker and a custom predict_fn that
@@ -184,7 +184,7 @@ class SHAPTextExplainer(BaseShapExplainer):
         print("check")
         explainer = shap.Explainer(
             fn,
-            masker=self.tokenizer,
+            masker=masker,
             algorithm=self.algorithm,
             # outputs=[sample.label],
             output_names=self.class_names,
