@@ -136,6 +136,7 @@ class SHAPTextExplainer(BaseShapExplainer):
     def explain(
         self,
         sample: DocSample,
+        tokenizer,
         align_boxes: bool = False,
         num_samples: int = 2000,
     ):
@@ -152,7 +153,7 @@ class SHAPTextExplainer(BaseShapExplainer):
         # background: all-masked
         background = np.zeros((1, len(sample.words)))
         masker = shap.maskers.Text(
-            tokenizer=sentinel_tokenizer,
+            tokenizer=tokenizer,
             mask_token=self.mask_token,
             collapse_mask_token=False
         )
@@ -165,7 +166,7 @@ class SHAPTextExplainer(BaseShapExplainer):
             output_names=self.class_names,
         )
         # build sentinel-delimited doc for SHAP
-        doc = DELIMITER.join(sample.words)
+        doc = "".join(sample.words)
         # compute and return first (and only) explanation
         return explainer([doc], max_evals=num_samples)[0]
 
