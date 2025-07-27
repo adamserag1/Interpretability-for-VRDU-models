@@ -14,19 +14,17 @@ def safe_split(doc_str: str) -> list[str]:
 
 def sentinel_tokenizer(s: str, return_offsets_mapping=True, **kw):
     """Custom tokenizer for SHAP Text masker using sentinel delimiter."""
-    tokens = s.split(DELIMITER)
-    ids = list(range(len(tokens)))
+    toks = [t for t in s.split(DELIMITER) if t]
+    ids = list(range(len(toks)))
     if return_offsets_mapping:
-        offsets = []
+        offs = []
         pos = 0
-        for t in tokens:
-            # ``pos`` is the starting character index of the current token in
-            # the concatenated string.  The end index is ``pos + len(t)``.
-            offsets.append((pos, pos + len(t)))
-            # Advance the position by the token length plus the delimiter
+        for t in toks:
+            offs.append((pos, pos + len(t)))
             pos += len(t) + len(DELIMITER)
-        return {"input_ids": ids, "offset_mapping": offsets}
-    return {"input_ids": ids}
+        return {"input_ids": ids, "offset_mapping": offs}
+    else:
+        return {"input_ids": ids}
 
 
 class BaseShapExplainer:
