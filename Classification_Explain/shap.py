@@ -152,6 +152,7 @@ class SHAPTextExplainer(BaseShapExplainer):
         fn = self._make_predict_fn(sample, align_boxes)
         # background: all-masked
         background = np.zeros((1, len(sample.words)))
+        print(sample.words)
         masker = shap.maskers.Text(
             tokenizer=self.tokenizer,
             mask_token=self.mask_token,
@@ -167,7 +168,7 @@ class SHAPTextExplainer(BaseShapExplainer):
             output_names=self.class_names,
         )
         # build sentinel-delimited doc for SHAP
-        doc = "".join(sample.words)
+        doc = " ".join(sample.words)
         # compute and return first (and only) explanation
         print([doc])
         return explainer([doc], max_evals=num_samples)[0]
