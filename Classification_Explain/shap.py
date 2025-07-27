@@ -89,7 +89,10 @@ class BaseShapExplainer:
         if temp:
             scaled_logits = logits
             # scaled_logits = logits / temp
-        return torch.softmax(scaled_logits, dim=-1).cpu().numpy()
+        probs = torch.softamx(logits, dim=-1)
+        eps = 1e-16
+        log_odds = torch.log(probs / (1.0 - probs * eps))
+        return log_odds.cpu().numpy()
 
     def explain(self, data, **shap_kwargs):
         if self.explainer is None:
@@ -189,7 +192,7 @@ class SHAPTextExplainer(BaseShapExplainer):
         masker = shap.maskers.Text(
             tokenizer=self.tokenizer,
             mask_token=self.mask_token,
-            collapse_mask_token=False
+            collapse_mask_token='auto'
         )
         print(self.algorithm)
         print("check")
