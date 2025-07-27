@@ -118,23 +118,30 @@ class SHAPTextExplainer(BaseShapExplainer):
         return np.vstack(out)
 
     def _make_predict_fn(self, sample: DocSample, align_boxes: bool = False):
-        W, H = sample.image.size  # needed if you blank boxes
+        W, H = sample.image.size
+        dummy_box = [0, 0, W, H]
 
-        def fn(perturbed_texts: list[str]):  # NOT a z-matrix!
+        def fn(perturbed_texts: list[str]):
             ds_batch = []
             for sent in perturbed_texts:
-                words = sent.split()  # same whitespace delimiter SHAP used
-                print(words)
-                # boxes = []
-                # for keep, (wrd, box) in zip(words, zip(sample.words, sample.bboxes)):
-                #     if align_boxes and keep == self.mask_token:
-                #         boxes.append([0, 0, W, H])  # collapse masked tokens
-                #     else:
-                #         boxes.append(box)
+                words = sent.split()  # SHAP separated tokens with spaces
+                boxes = []
+
+                for i, w in enumerate(words):
+                    if i < len(sample.bboxes):
+                        # keep original box or collapse it, depending on align_boxes
+                        if align_boxes and w == self.mask_token:
+                            boxes.append(dummy_box)
+                        else:
+                            boxes.append(sample.bboxes[i])
+                    else:
+                        # SHAP produced a word we never had – give it a dummy box
+                        boxes.append(dummy_box)
+
                 ds_batch.append(
                     DocSample(image=sample.image,
                               words=words,
-                              bboxes=sample.bboxes,
+                              bboxes=boxes,
                               ner_tags=sample.ner_tags,
                               label=sample.label)
                 )
