@@ -88,7 +88,7 @@ class SHAPTextExplainer(BaseShapExplainer):
         self.mask_token = mask_token
         self.batch_size = batch_size
         self.algorithm = algorithm
-
+        self.tokenizer = tokenizer
     def _batched_predict(self, samples: list[DocSample]) -> np.ndarray:
         """
         Batch predictions over DocSample list to avoid OOM.
