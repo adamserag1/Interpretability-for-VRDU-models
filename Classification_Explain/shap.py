@@ -6,25 +6,18 @@ from PIL import Image
 import nltk
 from transformers import LayoutLMv3TokenizerFast
 
-def make_layoutlmv3_tokenizer_wrapper(base_tokenizer):
+def make_layoutlmv3_tokenizer_wrapper(tkn: LayoutLMv3TokenizerFast, dummy_box=[0,0,0,0]):
+    """Return a callable that behaves like the original tokenizer *except*
+    it silently supplies dummy boxes when none are given (e.g. tokenizer('')).
+    """
+    @wraps(tkn)
     def wrapped(texts, **kwargs):
-        # Handle SHAP's special call to tokenizer("")
-        if isinstance(texts, str) and texts.strip() == "":
-            return {"input_ids": [base_tokenizer.cls_token_id, base_tokenizer.sep_token_id]}
-
-        # Normal SHAP usage — a real sentence like "the dog barked"
-        if isinstance(texts, str):
-            tokens = texts.strip().split()
-            dummy_boxes = [[0, 0, 0, 0]] * len(tokens)
-            return base_tokenizer(tokens, boxes=dummy_boxes, **kwargs)
-
-        elif isinstance(texts, list) and isinstance(texts[0], str):
-            token_lists = [t.strip().split() for t in texts]
-            dummy_boxes = [[[0, 0, 0, 0]] * len(toks) for toks in token_lists]
-            return base_tokenizer(token_lists, boxes=dummy_boxes, **kwargs)
-
-        else:
-            raise ValueError("SHAP-wrapper: input must be str or list of str")
+        if "boxes" not in kwargs:
+            if isinstance(texts, str):  # single example
+                kwargs["boxes"] = [dummy_box] * len(texts.split())
+            else:                       # batch → one dummy box list per sample
+                kwargs["boxes"] = [[dummy_box] * len(x.split()) for x in texts]
+        return tkn(texts, **kwargs)
     return wrapped
 
 DELIMITER = "|~|"
@@ -124,41 +117,26 @@ class SHAPTextExplainer(BaseShapExplainer):
         return np.vstack(out)
 
     def _make_predict_fn(self, sample: DocSample, align_boxes: bool):
-        """
-        Returns a function f(z_matrix) -> np.ndarray, where z_matrix is
-        array of shape (n_perturb, n_tokens) of 0/1 indicating kept tokens.
-        """
-        def fn(z_bin_mat: np.ndarray) -> np.ndarray:
-            perturbed = []
-            w, h = sample.image.size
-            perturbed.append(
-                DocSample(
-                    image=sample.image,
-                    words=z_bin_mat,
-                    bboxes=sample.bboxes,#[:(len(words))],
-                    ner_tags=sample.ner_tags,
-                    label=sample.label,
-                )
-            )
-            return self._batched_predict(perturbed)
+        W, H = sample.image.size  # needed if you blank boxes
 
-            # for z in z_bin_mat:
-            #     words = [wrd if keep else self.mask_token for wrd, keep in zip(sample.words, z)]
-            #     # optionally zero out boxes
-            #     if align_boxes:
-            #         boxes = [b if keep else [0, 0, w, h] for b, keep in zip(sample.bboxes, z)]
-            #     else:
-            #         boxes = sample.bboxes
-            #     perturbed.append(
-            #         DocSample(
-            #             image=sample.image,
-            #             words=words,
-            #             bboxes=boxes,#[:(len(words))],
-            #             ner_tags=sample.ner_tags,
-            #             label=sample.label,
-            #         )
-            #     )
-            # return self._batched_predict(perturbed)
+        def fn(perturbed_texts: list[str]):  # NOT a z-matrix!
+            ds_batch = []
+            for sent in perturbed_texts:
+                words = sent.split()  # same whitespace delimiter SHAP used
+                boxes = []
+                for keep, (wrd, box) in zip(words, zip(sample.words, sample.bboxes)):
+                    if align_boxes and keep == self.mask_token:
+                        boxes.append([0, 0, W, H])  # collapse masked tokens
+                    else:
+                        boxes.append(box)
+                ds_batch.append(
+                    DocSample(image=sample.image,
+                              words=words,
+                              bboxes=boxes,
+                              ner_tags=sample.ner_tags,
+                              label=sample.label)
+                )
+            return self._batched_predict(ds_batch)
 
         return fn
 
