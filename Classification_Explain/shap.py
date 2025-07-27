@@ -105,7 +105,7 @@ class SHAPTextExplainer(BaseShapExplainer):
         def fn(z_bin_mat: np.ndarray) -> np.ndarray:
             perturbed = []
             w, h = sample.image.size
-            print(z_bin_mat)
+            print(f'SHAP{z_bin_mat}')
             for z in z_bin_mat:
                 # mask tokens # HERE HELLO !!!!!!!!!!!!!!!!!!!!!!!!!
                 # BOXE[:len(words)] is FISHY!!!!!!

@@ -69,7 +69,7 @@ class LimeTextExplainer(BaseLimeExplainer):
 
         def fn(z_bin_list):
             perturbed = []
-            print(z_bin_list)
+            print(f'LIME{z_bin_list}')
             w, h = sample.image.size
             for z in z_bin_list:
                 words = [w if z_i else self.mask_token for w, z_i in zip(sample.words, z)]
