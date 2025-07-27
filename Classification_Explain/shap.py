@@ -132,6 +132,10 @@ class SHAPTextExplainer(BaseShapExplainer):
             perturbed = []
             w, h = sample.image.size
             print(f'SHAP{z_bin_mat}')
+            print("z_bin_mat shape:", z_bin_mat.shape)
+            print("First 3 z masks:")
+            for i in range(3):
+                print(f"z[{i}]:", z_bin_mat[i])
             for z in z_bin_mat:
                 words = [wrd if keep else self.mask_token for wrd, keep in zip(sample.words, z)]
                 # optionally zero out boxes
