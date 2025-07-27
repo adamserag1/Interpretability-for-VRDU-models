@@ -137,7 +137,6 @@ class SHAPTextExplainer(BaseShapExplainer):
     def explain(
         self,
         sample: DocSample,
-        tokenizer,
         align_boxes: bool = False,
         num_samples: int = 2000,
     ):
