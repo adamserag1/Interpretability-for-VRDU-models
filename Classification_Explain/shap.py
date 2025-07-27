@@ -177,7 +177,7 @@ class SHAPTextExplainer(BaseShapExplainer):
             collapse_mask_token=False
         )
         print(self.algorithm)
-
+        print("check")
         explainer = shap.Explainer(
             fn,
             masker=self.tokenizer,
