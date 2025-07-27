@@ -181,7 +181,7 @@ class SHAPTextExplainer(BaseShapExplainer):
 
         explainer = shap.Explainer(
             fn,
-            masker=tokenizer,
+            masker=self.tokenizer,
             algorithm=self.algorithm,
             # outputs=[sample.label],
             output_names=self.class_names,
