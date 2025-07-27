@@ -78,6 +78,7 @@ class SHAPTextExplainer(BaseShapExplainer):
         self,
         model,
         encode_fn,
+        tokenizer,
         mask_token: str = "[UNK]",
         device: str = None,
         batch_size: int = 16,
@@ -153,7 +154,7 @@ class SHAPTextExplainer(BaseShapExplainer):
         # background: all-masked
         background = np.zeros((1, len(sample.words)))
         masker = shap.maskers.Text(
-            tokenizer=tokenizer,
+            tokenizer=self.tokenizer,
             mask_token=self.mask_token,
             collapse_mask_token=False
         )
