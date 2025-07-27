@@ -173,8 +173,10 @@ class SHAPTextExplainer(BaseShapExplainer):
     def explain(
         self,
         sample: DocSample,
+        outputs,
         align_boxes: bool = False,
         num_samples: int = 2000,
+
     ):
         """
         Explain one DocSample via shap.Explainer(Text masker).
@@ -201,7 +203,7 @@ class SHAPTextExplainer(BaseShapExplainer):
             masker=masker,
             algorithm=self.algorithm,
             link=shap.links.identity,
-            output_names=self.class_names,
+            outputs=outputs
         )
         # build sentinel-delimited doc for SHAP
         doc = " ".join(sample.words)
