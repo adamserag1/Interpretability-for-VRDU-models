@@ -133,11 +133,11 @@ class LimeLayoutExplainer(LimeTextExplainer):
                     b if keep else [0, 0, w, h]
                     for b, keep in zip(sample.bboxes, z)
                 ]
-                words = [w if z_i else self.mask_token for w, z_i in zip(sample.words, z)]
+                # words = [w if z_i else self.mask_token for w, z_i in zip(sample.words, z)]
                 perturbed.append(
                     DocSample(
                         sample.image,                 # same page image
-                        words,                 # keep tokens
+                        sample.words,                 # keep tokens
                         boxes,                        # modified boxes
                         label    = sample.label,
                         ner_tags = sample.ner_tags    # keep BIO labels

@@ -216,15 +216,16 @@ class SHAPLayoutExplainer(SHAPTextExplainer):
         def fn(z_bin_mat: np.ndarray) -> np.ndarray:
             perturbed = []
             w, h = sample.image.size
+            print(z_bin_mat)
             for z in z_bin_mat:
                 # keep words or replace with mask token (same as text SHAP)
-                words = [wrd if keep else self.mask_token for wrd, keep in zip(sample.words, z)]
-                # replace bounding box with full page for masked tokens
+                # words = [wrd if keep else self.mask_token for wrd, keep in zip(sample.words, z)]
+                # # replace bounding box with full page for masked tokens
                 boxes = [b if keep else [0, 0, w, h] for b, keep in zip(sample.bboxes, z)]
                 perturbed.append(
                     DocSample(
                         image=sample.image,
-                        words=words,
+                        words=sample.words,
                         bboxes=boxes,
                         ner_tags=sample.ner_tags,
                         label=sample.label,
