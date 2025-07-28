@@ -244,27 +244,80 @@ class BBoxMasker:
 
 
 class SHAPLayoutExplainer(BaseShapExplainer):
-    def __init__(self, model, encode_fn, base_sample: "DocSample", algorithm="permutation", device=None):
-        super().__init__(model, encode_fn, algorithm, device)
-        self.masker = BBoxMasker(base_sample)
-        self.batch_size = 8  # Adjustable if needed
+    """
+       Monte-Carlo (permutation) SHAP explainer for *layout* modality.
+       Only bounding-box coordinates are perturbed; words are kept fixed.
+       """
 
-        self.explainer = shap.Explainer(
-            self._batched_predict,
-            self.masker,
-            algorithm=self.algorithm,
-            output_names=self.class_names,
-            link=shap.links.logit
-        )
+    def __init__(self, model, encode_fn, *, batch_size: int = 16,
+                 mask_full_page: bool = True, device: str | None = None):
+        super().__init__(model, encode_fn, algorithm="permutation", device=device)
+        self.batch_size = batch_size
+        self.mask_full_page = mask_full_page  # if False → zero-box instead
 
-    def _batched_predict(self, samples) -> np.ndarray:
+    # ---------------------------------------------------------------- helpers
+    def _batched_predict(self, samples: List[DocSample]) -> np.ndarray:
         """
-        Batch predictions over DocSample list to avoid OOM.
+        Predict a list of DocSample objects in mini-batches to avoid OOM.
         """
         out = []
         for i in range(0, len(samples), self.batch_size):
-            out.append(self._predict(samples[i : i + self.batch_size]))
+            out.append(self._predict(samples[i: i + self.batch_size]))
         return np.vstack(out)
+
+    def _make_predict_fn(self, template: DocSample):
+        """
+        Returns f(z_mask) -> log-odds, where
+          z_mask  : (N, n_tokens) binary matrix produced by SHAP.
+        Each 0 in z_mask means *mask this token's bounding box*.
+        """
+        w_page, h_page = template.image.size
+        full_box = [0, 0, w_page, h_page]
+
+        def predict(z_bin_mat: np.ndarray) -> np.ndarray:
+            perturbed: list[DocSample] = []
+            for z_row in z_bin_mat.astype(int):
+                boxes = [b if keep else (full_box if self.mask_full_page else [0, 0, 0, 0])
+                         for b, keep in zip(template.bboxes, z_row)]
+                perturbed.append(
+                    DocSample(
+                        image=template.image,
+                        words=template.words,  # unchanged
+                        bboxes=boxes,  # perturbed layout
+                        ner_tags=template.ner_tags,
+                        label=template.label,
+                    )
+                )
+            return self._batched_predict(perturbed)
+
+        return predict
+
+    # ---------------------------------------------------------------- public
+    def explain(self, sample: DocSample, *,
+                nsamples: int = 2_000, random_state: int | None = None):
+        """
+        Compute a Monte-Carlo SHAP explanation for a single DocSample.
+        `nsamples`    – SHAP permutations to draw (higher ⇒ lower variance).
+        """
+        n_tokens = len(sample.bboxes)
+        # 1 = keep, 0 = mask
+        data_row = np.ones(n_tokens, dtype=int)
+        baseline = np.zeros(n_tokens, dtype=int)  # what the masker inserts
+
+        masker = shap.maskers.Independent(baseline)
+
+        self.explainer = shap.Explainer(
+            self._make_predict_fn(sample),
+            masker,
+            algorithm="permutation",
+            output_names=self.class_names,
+            link=shap.links.identity,  # already returning log-odds
+            seed=random_state,
+        )
+
+        # SHAP expects a *batch* → wrap data_row in list
+        return self.explainer([data_row], nsamples=nsamples)[0]
+
 class SHAPVisionExplainer(BaseShapExplainer):
     def __init__(self,model,encode_fn,*,label = None,mask_value = "inpaint_telea",batch_size = 32,algorithm = "partition",device = None,):
         super().__init__(model, encode_fn, algorithm=algorithm, device=device)
