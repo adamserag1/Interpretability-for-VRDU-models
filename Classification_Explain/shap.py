@@ -218,13 +218,13 @@ class BBoxMasker:
     Custom SHAP masker that perturbs bounding boxes while keeping other inputs fixed.
     Assumes input is a single DocSample object; returns a list of perturbed DocSamples.
     """
-    def __init__(self, base_sample: "DocSample", mask_value: List[int] = [0, 0, 0, 0]):
+    def __init__(self, base_sample: "DocSample", mask_value = [0, 0, 0, 0]):
         self.base_sample = base_sample
         self.mask_value = mask_value
         self.shape = (len(base_sample.bboxes),)
         self.feature_names = [f'bbox_{i}' for i in range(len(base_sample.bboxes))]
 
-    def __call__(self, masks: np.ndarray) -> List["DocSample"]:
+    def __call__(self, masks: np.ndarray):
         """
         Apply binary mask to bounding boxes. Each mask row generates a new perturbed DocSample.
         """
@@ -321,7 +321,7 @@ class SHAPVisionExplainer(BaseShapExplainer):
             output_names=self.class_names,
         )
 
-        # SHAP expects a *batch* → wrap in list
+
         max_evals = max_evals or num_samples
         explanation = explainer([img_np], max_evals=max_evals, batch_size=max_batch)[0]
         return explanation
