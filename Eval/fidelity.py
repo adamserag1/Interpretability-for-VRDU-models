@@ -11,7 +11,7 @@ from typing import List, Dict, Callable
 from vrdu_utils.module_types import DocSample
 
 
-def calculate_comprehensiveness(predict_fn, sample, explanation, mask_token, top_k=5):
+def calculate_comprehensiveness(predict_fn, sample, explanation, mask_token, top_k=5, modality='text'):
     """
     Calculates the comprehensiveness score for a given explanation.
 
@@ -30,17 +30,24 @@ def calculate_comprehensiveness(predict_fn, sample, explanation, mask_token, top
     sorted_features = sorted(explanation.items(), key=lambda item: item[1], reverse=True)
     top_k = min(top_k, len(sorted_features))  # Ensure top_k doesn't exceed available features
     features_to_remove = {item[0] for item in sorted_features[:top_k]}
-
-    # Create perturbed sample by removing top features
-    perturbed_words = [word if word not in features_to_remove else mask_token for word in sample.words]
-    perturbed_sample = DocSample(image=sample.image, words=perturbed_words, bboxes=sample.bboxes, ner_tags=sample.ner_tags, label=sample.label)
+    words=sample.words
+    image=sample.image
+    bboxes=sample.bboxes
+    w, h = image.size
+    if modality == 'text':
+        words = [word if word not in features_to_remove else mask_token for word in sample.words]
+    if modality == 'layout':
+        bboxes = [bbox if bbox not in features_to_remove else [0,0,w,h] for bbox in sample.bboxes]
+    if modality == 'vision':
+        print('VISION NOT IMPLEMENTED')
+    perturbed_sample = DocSample(image=image, words=words, bboxes=bboxes, ner_tags=sample.ner_tags, label=sample.label)
     print(f'Removed top {top_k} words')
     perturbed_prob = predict_fn(perturbed_sample)
     print(f'[COMP] original probability: {original_prob}, perturbed_probability: {perturbed_prob}')
     return original_prob - perturbed_prob
 
 
-def calculate_sufficiency(predict_fn, sample, explanation, mask_token, top_k=5):
+def calculate_sufficiency(predict_fn, sample, explanation, mask_token, top_k=5, modality='text'):
     """
     Calculates the sufficiency score for a given explanation.
 
@@ -60,11 +67,20 @@ def calculate_sufficiency(predict_fn, sample, explanation, mask_token, top_k=5):
     features_to_keep = {item[0] for item in sorted_features[:top_k]}
 
     # Create perturbed sample by keeping only top features
-    perturbed_words = [word if word in features_to_keep else mask_token for word in sample.words]
-    perturbed_sample = DocSample(image=sample.image, words=perturbed_words, bboxes=sample.bboxes, ner_tags=sample.ner_tags, label=sample.label)
+    words=sample.words
+    image=sample.image
+    bboxes=sample.bboxes
+    w, h = image.size
+    if modality == 'text':
+        words = [word if word in features_to_keep else mask_token for word in sample.words]
+    if modality == 'layout':
+        bboxes = [bbox if bbox in features_to_keep else [0,0,w,h] for bbox in sample.bboxes]
+    if modality == 'vision':
+        print('VISION NOT IMPLEMENTED')
+    perturbed_sample = DocSample(image=image, words=words, bboxes=bboxes, ner_tags=sample.ner_tags, label=sample.label)
 
     perturbed_prob = predict_fn(perturbed_sample)
-    print(f'Kept top {top_k} words')
+    print(f'Kept top {top_k} {modality} tokens')
     print(f'[SUF] original probability: {original_prob}, perturbed_probability: {perturbed_prob}')
     return original_prob - perturbed_prob
 
