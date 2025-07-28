@@ -292,7 +292,7 @@ class SHAPLayoutExplainer(BaseShapExplainer):
             output_names=self.class_names,
             link=shap.links.logit,
         )
-        return self.explainer(sample.bboxes, nsamples=nsamples)
+        return self.explainer(sample.bboxes, nsamples=num_samples)
 
 class SHAPVisionExplainer(BaseShapExplainer):
     def __init__(self,model,encode_fn,*,label = None,mask_value = "inpaint_telea",batch_size = 32,algorithm = "partition",device = None,):
