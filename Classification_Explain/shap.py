@@ -213,36 +213,6 @@ class SHAPTextExplainer(BaseShapExplainer):
         # compute and return first (and only) explanation
         return explainer([doc], max_evals=num_samples)
 
-class BBoxMasker:
-    """
-    Custom SHAP masker that perturbs bounding boxes while keeping other inputs fixed.
-    Assumes input is a single DocSample object; returns a list of perturbed DocSamples.
-    """
-    def __init__(self, base_sample: "DocSample", mask_value = [0, 0, 0, 0]):
-        self.base_sample = base_sample
-        self.mask_value = mask_value
-        self.shape = (len(base_sample.bboxes),)
-        self.feature_names = [f'bbox_{i}' for i in range(len(base_sample.bboxes))]
-
-    def __call__(self, masks: np.ndarray):
-        """
-        Apply binary mask to bounding boxes. Each mask row generates a new perturbed DocSample.
-        """
-        perturbed = []
-        for mask in masks:
-            # Deepcopy to avoid mutation
-            new_sample = deepcopy(self.base_sample)
-            new_sample.bboxes = [
-                bbox if keep else self.mask_value
-                for bbox, keep in zip(self.base_sample.bboxes, mask)
-            ]
-            perturbed.append(new_sample)
-        return perturbed
-
-    def data(self):
-        return self.base_sample
-
-
 class SHAPLayoutExplainer(BaseShapExplainer):
     """
        Monte-Carlo (permutation) SHAP explainer for *layout* modality.
@@ -316,7 +286,7 @@ class SHAPLayoutExplainer(BaseShapExplainer):
         )
 
         # SHAP expects a *batch* → wrap data_row in list
-        return self.explainer([data_row], num_samples=nsamples)[0]
+        return self.explainer([data_row], max_evals=nsamples)[0]
 
 class SHAPVisionExplainer(BaseShapExplainer):
     def __init__(self,model,encode_fn,*,label = None,mask_value = "inpaint_telea",batch_size = 32,algorithm = "partition",device = None,):
