@@ -173,7 +173,7 @@ def display_image_grid(images, titles, grid_size=(2, 2), figsize=(10, 10), main_
     # Create a figure with subplots
     fig, axes = plt.subplots(grid_size[0], grid_size[1], figsize=figsize)
     axes = axes.flatten()  # Flatten the 2D array of axes for easy iteration
-    fig.suptitle(f'{main_title}')
+    fig.suptitle(f'{main_title}', fontsize=20)
     for idx, (img, ax, title) in enumerate(zip(images, axes, titles)):
         # Convert PIL image to displayable format
         ax.imshow(img)
