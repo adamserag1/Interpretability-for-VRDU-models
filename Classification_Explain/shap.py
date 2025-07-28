@@ -328,6 +328,7 @@ class SHAPVisionExplainer(BaseShapExplainer):
         """
 
         img_np = np.asarray(sample.image.convert('RGB'))
+        print(img_np.shape)
         if img_np.ndim == 2:  # greyscale → add channel
             img_np = img_np[..., None]
 
