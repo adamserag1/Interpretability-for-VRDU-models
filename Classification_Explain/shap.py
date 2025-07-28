@@ -104,7 +104,7 @@ class BaseShapExplainer:
     def explain_batch(self, samples, **kwargs):
         return [self.explain(s, **kwargs) for s in samples]
 
-class SHAPTextMCExplainer(BaseShapExplainer):
+class SHAPTextExplainer(BaseShapExplainer):
     """
     Monte-Carlo (permutation) SHAP for *text* modality.
     Only tokens are perturbed; bounding boxes stay unchanged unless
