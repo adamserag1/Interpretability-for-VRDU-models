@@ -266,62 +266,85 @@ class SHAPLayoutExplainer(BaseShapExplainer):
         return self.explainer(data_row, max_evals=nsamples)
 
 class SHAPVisionExplainer(BaseShapExplainer):
-    def __init__(self,model,encode_fn,*,label = None,mask_value = "inpaint_telea",batch_size = 32,algorithm = "partition",device = None,):
-        super().__init__(model, encode_fn, algorithm=algorithm, device=device)
+    """
+       Monte-Carlo (permutation) SHAP explainer for *vision* modality.
+
+       • Only the image is perturbed (words + bboxes stay fixed).
+       • Uses `shap.maskers.Image` with inpainting (default `mask_value="inpaint_telea"`).
+       • Works in log-odds space via BaseShapExplainer._predict.
+       """
+
+    def __init__(self,
+                 model,
+                 encode_fn,
+                 *,
+                 mask_value: str = "inpaint_telea",
+                 batch_size: int = 32,
+                 device: str | None = None):
+        super().__init__(model, encode_fn, algorithm="permutation", device=device)
         self.mask_value = mask_value
         self.batch_size = batch_size
-        self.label = label  # restrict probability vector if desired
 
-    # ---------------------------------------------------------------------
-    # internal helpers
-    # ---------------------------------------------------------------------
-    def _batched_predict(self, samples):
+    # ---------------------------------------------------------------- helpers
+    def _batched_predict(self, samples: List[DocSample]) -> np.ndarray:
         out = []
         for i in range(0, len(samples), self.batch_size):
-            out.append(self._predict(samples[i : i + self.batch_size]))
+            out.append(self._predict(samples[i: i + self.batch_size]))
         return np.vstack(out)
 
     def _make_predict_fn(self, template: DocSample):
-        """Return f(images_np) → probs.
+        """
+        Returns f(img_batch_np) -> log-odds.  Each N×H×W×C image comes from SHAP.
+        Only the *image* is replaced; words/bboxes copied from template.
+        """
+        words = template.words
+        bboxes = template.bboxes
+        ner = template.ner_tags
+        label = template.label
 
-        *images_np* is a `(N, H, W, C)` array emitted by SHAP.  We wrap each array
-        into a `DocSample`, keeping the *words* and *bboxes* from *template*
-        unchanged.
+        def predict(img_batch: np.ndarray) -> np.ndarray:
+            perturbed = [
+                DocSample(Image.fromarray(arr.astype(np.uint8)),
+                          words, bboxes,
+                          ner_tags=ner, label=label)
+                for arr in img_batch
+            ]
+            return self._batched_predict(perturbed)
+
+        return predict
+
+    def explain(self,
+                sample: DocSample,
+                *,
+                nsamples: int = 8_000,
+                random_state: int | None = None,
+                max_batch: int = 64):
+        """
+        Compute Monte-Carlo SHAP for a single `DocSample`.
+
+        Parameters
+        ----------
+        nsamples : number of feature evaluations (permutation samples)
         """
 
-        def fn(imgs: np.ndarray) -> np.ndarray:
-            perturbed = [
-                DocSample(
-                    image=Image.fromarray(img.astype(np.uint8)),
-                    words=template.words,
-                    bboxes=template.bboxes,
-                    ner_tags=template.ner_tags,
-                    label=template.label,
-                )
-                for img in imgs
-            ]
-            probs = self._batched_predict(perturbed)
-
-            if self.label is not None:
-                probs = probs[:, self.label][:, None]
-            return probs
-
-        return fn
-
-    def explain(self,sample: DocSample,*,num_samples = 8000,max_evals = None, max_batch = 64):
-        img_np = np.asarray(sample.image)
-        if img_np.ndim == 2:  # greyscale → (H, W, 1)
+        img_np = np.asarray(sample.image.convert('RGB'))
+        if img_np.ndim == 2:  # greyscale → add channel
             img_np = img_np[..., None]
 
         masker = shap.maskers.Image(self.mask_value, shape=img_np.shape)
-        explainer = shap.Explainer(
+
+        self.explainer = shap.Explainer(
             self._make_predict_fn(sample),
-            masker=masker,
-            algorithm=self.algorithm,
+            masker,
+            algorithm="permutation",
             output_names=self.class_names,
+            link=shap.links.identity,  # _predict already returns log-odds
+            seed=random_state,
         )
 
-
-        max_evals = max_evals or num_samples
-        explanation = explainer([img_np], max_evals=max_evals, batch_size=max_batch)[0]
-        return explanation
+        # SHAP expects batch input → wrap in array of shape (1, H, W, C)
+        return self.explainer(
+            np.expand_dims(img_np, 0),
+            max_evals=nsamples,
+            batch_size=max_batch
+        )[0]
