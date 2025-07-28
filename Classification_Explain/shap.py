@@ -286,7 +286,7 @@ class SHAPVisionExplainer(BaseShapExplainer):
         self.batch_size = batch_size
 
     # ---------------------------------------------------------------- helpers
-    def _batched_predict(self, samples):
+    def _batched_predict(self, samples) -> np.ndarray:
         out = []
         for i in range(0, len(samples), self.batch_size):
             out.append(self._predict(samples[i: i + self.batch_size]))
@@ -313,6 +313,7 @@ class SHAPVisionExplainer(BaseShapExplainer):
 
         return predict
 
+
     def explain(self,
                 sample: DocSample,
                 *,
@@ -327,8 +328,7 @@ class SHAPVisionExplainer(BaseShapExplainer):
         nsamples : number of feature evaluations (permutation samples)
         """
 
-        img_np = np.asarray(sample.image.convert('RGB'))
-        print(img_np.shape)
+        img_np = np.asarray(sample.image)
         if img_np.ndim == 2:  # greyscale → add channel
             img_np = img_np[..., None]
 
