@@ -166,7 +166,7 @@ class DocSampleDataset(Dataset):
         return len(self.ds)
 
 
-def display_image_grid(images, titles, grid_size=(2, 2), figsize=(10, 10)):
+def display_image_grid(images, titles, grid_size=(2, 2), figsize=(10, 10), main_title=None):
     """
     Display a list of PIL images in a grid using matplotlib.
 
@@ -187,6 +187,6 @@ def display_image_grid(images, titles, grid_size=(2, 2), figsize=(10, 10)):
         ax.imshow(img)
         ax.set_title(f"{title}")
         ax.axis('off')  # Hide axes for cleaner display
-
+    plt.title(main_title)
     plt.tight_layout()  # Adjust spacing between images
     plt.show()
