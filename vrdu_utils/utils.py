@@ -167,26 +167,18 @@ class DocSampleDataset(Dataset):
 
 
 def display_image_grid(images, titles, grid_size=(2, 2), figsize=(10, 10), main_title=None):
-    """
-    Display a list of PIL images in a grid using matplotlib.
-
-    Parameters:
-    - images: List of PIL.Image.Image objects (exactly 4 for a 2x2 grid).
-    - grid_size: Tuple of (rows, cols) for the grid layout (default: (2, 2)).
-    - figsize: Tuple of (width, height) for the figure size in inches.
-    """
     if len(images) != grid_size[0] * grid_size[1]:
         raise ValueError(f"Expected {grid_size[0] * grid_size[1]} images, got {len(images)}")
 
     # Create a figure with subplots
     fig, axes = plt.subplots(grid_size[0], grid_size[1], figsize=figsize)
     axes = axes.flatten()  # Flatten the 2D array of axes for easy iteration
-    plt.title(f'{main_title}')
+    fig.suptitle(f'{main_title}')
     for idx, (img, ax, title) in enumerate(zip(images, axes, titles)):
         # Convert PIL image to displayable format
         ax.imshow(img)
         ax.set_title(f"{title}")
         ax.axis('off')  # Hide axes for cleaner display
-
+    plt.subplots_adjust(top=0.85)
     plt.tight_layout()  # Adjust spacing between images
     plt.show()
