@@ -10,9 +10,9 @@ from typing import List, Dict, Callable
 
 from vrdu_utils.module_types import DocSample
 
-def _as_hashable(x):
-    """Return a hashable version of a feature key."""
-    return tuple(x) if isinstance(x, list) else x
+def _top_k_indices(sorted_features, top_k):
+    """Return the *indices* of the top-k layout boxes."""
+    return {i for i, (_box, _score) in enumerate(sorted_features[:top_k])}
 
 def calculate_comprehensiveness(predict_fn, sample, explanation, mask_token, top_k=5, modality='text'):
     """
@@ -30,26 +30,29 @@ def calculate_comprehensiveness(predict_fn, sample, explanation, mask_token, top
     original_prob = predict_fn(sample)
 
     # Get top-k features to remove
-    sorted_features = sorted(explanation.items(), key=lambda item: item[1], reverse=True)[:top_k]
-    rem_set = {_as_hashable(k) for k, _ in sorted_features}
+    sorted_features = sorted(explanation.items(), key=lambda item: item[1], reverse=True)
+    top_k = min(top_k, len(sorted_features))
     w, h = sample.image.size
     if modality == 'text':
-        words = [word if _as_hashable(word) not in rem_set else mask_token for word in sample.words]
-        perturbed_sample = DocSample(image=sample.image, words=words, bboxes=sample.bboxes, ner_tags=sample.ner_tags,
-                                     label=sample.label)
+        remove_set = {kv[0] for kv in sorted_features[:top_k]}
+        words = [w if w not in remove_set else mask_token
+                 for w in sample.words]
+        bboxes = sample.bboxes
+
     if modality == 'layout':
-        bboxes = [bbox if _as_hashable(bbox) not in rem_set else [0,0,w,h] for bbox in sample.bboxes]
-        c = 0
-        for i in bboxes:
-            if i == [0,0,w,h]:
-                c+= 1
-        print(c)
-        perturbed_sample = DocSample(image=sample.image, words=sample.words, bboxes=bboxes, ner_tags=sample.ner_tags,
-                                     label=sample.label)
+        remove_idx = _top_k_indices(sorted_features, top_k)
+
+        bboxes = [
+            bbox if i not in remove_idx else [0, 0, *sample.image.size]
+            for i, bbox in enumerate(sample.bboxes)
+        ]
+        words = sample.words
     if modality == 'vision':
-        print('VISION NOT IMPLEMENTED')
+            print('VISION NOT IMPLEMENTED')
 
     print(f'Removed top {top_k} words')
+    perturbed_sample = DocSample(sample.image, words, bboxes,
+                          ner_tags=sample.ner_tags, label=sample.label)
     perturbed_prob = predict_fn(perturbed_sample)
     print(f'[COMP] original probability: {original_prob}, perturbed_probability: {perturbed_prob}')
     return original_prob - perturbed_prob
@@ -70,21 +73,27 @@ def calculate_sufficiency(predict_fn, sample, explanation, mask_token, top_k=5, 
     """
     original_prob = predict_fn(sample)
     # Get top-k features to keep
-    sorted_features = sorted(explanation.items(), key=lambda item: item[1], reverse=True)[:top_k]
-    rem_set = {_as_hashable(k) for k, _ in sorted_features}
+    sorted_features = sorted(explanation.items(), key=lambda item: item[1], reverse=True)
+    top_k = min(top_k, len(sorted_features))
 
     # Create perturbed sample by keeping only top features
-    words=sample.words
-    image=sample.image
-    bboxes=sample.bboxes
-    w, h = image.size
+    w, h = sample.image.size
     if modality == 'text':
-        words = [word if _as_hashable(word) in rem_set else mask_token for word in sample.words]
+        keep_set = {kv[0] for kv in sorted_features[:top_k]}
+        words = [w if w in keep_set else mask_token
+                 for w in sample.words]
+        bboxes = sample.bboxes
     if modality == 'layout':
-        bboxes = [bbox if _as_hashable(bbox) in rem_set else [0,0,w,h] for bbox in sample.bboxes]
+        keep_idx = _top_k_indices(sorted_features, top_k)
+
+        bboxes = [
+            bbox if i in keep_idx else [0, 0, *sample.image.size]
+            for i, bbox in enumerate(sample.bboxes)
+        ]
+        words = sample.words
     if modality == 'vision':
         print('VISION NOT IMPLEMENTED')
-    perturbed_sample = DocSample(image=image, words=words, bboxes=bboxes, ner_tags=sample.ner_tags, label=sample.label)
+    perturbed_sample = DocSample(image=sample.image, words=words, bboxes=bboxes, ner_tags=sample.ner_tags, label=sample.label)
 
     perturbed_prob = predict_fn(perturbed_sample)
     print(f'Kept top {top_k} {modality} tokens')
