@@ -11,7 +11,7 @@ from typing import List, Dict, Callable
 from vrdu_utils.module_types import DocSample
 
 
-def calculate_comprehensiveness(predict_fn, sample, explanation, mask_token, top_k_fraction= 0.2):
+def calculate_comprehensiveness(predict_fn, sample, explanation, mask_token, top_k=5):
     """
     Calculates the comprehensiveness score for a given explanation.
 
@@ -19,7 +19,7 @@ def calculate_comprehensiveness(predict_fn, sample, explanation, mask_token, top
         predict_fn: A function that takes a DocSample and returns the model's prediction probability for the original class.
         sample: The original DocSample.
         explanation: A dictionary where keys are features (e.g., words) and values are their importance scores.
-        top_k_fraction: The fraction of top features to remove.
+        top_k: The number of top features to remove.
 
     Returns:
         The comprehensiveness score.
@@ -28,7 +28,7 @@ def calculate_comprehensiveness(predict_fn, sample, explanation, mask_token, top
 
     # Get top-k features to remove
     sorted_features = sorted(explanation.items(), key=lambda item: item[1], reverse=True)
-    top_k = int(len(sorted_features) * top_k_fraction)
+    top_k = min(top_k, len(sorted_features))  # Ensure top_k doesn't exceed available features
     features_to_remove = {item[0] for item in sorted_features[:top_k]}
 
     # Create perturbed sample by removing top features
@@ -36,11 +36,11 @@ def calculate_comprehensiveness(predict_fn, sample, explanation, mask_token, top
     perturbed_sample = DocSample(image=sample.image, words=perturbed_words, bboxes=sample.bboxes, ner_tags=sample.ner_tags, label=sample.label)
     print(f'Removed top {top_k} words')
     perturbed_prob = predict_fn(perturbed_sample)
-    print(f'[COMP] original probability: {original_prob}, pertrubed_probability: {perturbed_prob}')
+    print(f'[COMP] original probability: {original_prob}, perturbed_probability: {perturbed_prob}')
     return original_prob - perturbed_prob
 
 
-def calculate_sufficiency(predict_fn, sample, explanation, mask_token, top_k_fraction= 0.2):
+def calculate_sufficiency(predict_fn, sample, explanation, mask_token, top_k=5):
     """
     Calculates the sufficiency score for a given explanation.
 
@@ -48,7 +48,7 @@ def calculate_sufficiency(predict_fn, sample, explanation, mask_token, top_k_fra
         predict_fn: A function that takes a DocSample and returns the model's prediction probability for the original class.
         sample: The original DocSample.
         explanation: A dictionary where keys are features (e.g., words) and values are their importance scores.
-        top_k_fraction: The fraction of top features to keep.
+        top_k: The number of top features to keep.
 
     Returns:
         The sufficiency score.
@@ -56,18 +56,16 @@ def calculate_sufficiency(predict_fn, sample, explanation, mask_token, top_k_fra
     original_prob = predict_fn(sample)
     # Get top-k features to keep
     sorted_features = sorted(explanation.items(), key=lambda item: item[1], reverse=True)
-    top_k = int(len(sorted_features) * top_k_fraction)
-
+    top_k = min(top_k, len(sorted_features))  # Ensure top_k doesn't exceed available features
     features_to_keep = {item[0] for item in sorted_features[:top_k]}
 
     # Create perturbed sample by keeping only top features
     perturbed_words = [word if word in features_to_keep else mask_token for word in sample.words]
-    # ALIGN BBOXES
     perturbed_sample = DocSample(image=sample.image, words=perturbed_words, bboxes=sample.bboxes, ner_tags=sample.ner_tags, label=sample.label)
 
     perturbed_prob = predict_fn(perturbed_sample)
     print(f'Removed top {top_k} words')
-    print(f'[SUF]original probability: {original_prob}, pertrubed_probability: {perturbed_prob}')
+    print(f'[SUF] original probability: {original_prob}, perturbed_probability: {perturbed_prob}')
     return original_prob - perturbed_prob
 
 
