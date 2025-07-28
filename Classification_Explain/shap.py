@@ -278,7 +278,7 @@ class SHAPLayoutExplainer(BaseShapExplainer):
         ]
         return self._predict(hydrated)
 
-    def explain(self, sample: DocSample, nsamples: int = 512):
+    def explain(self, sample: DocSample, num_samples: int = 512):
         """
         Run SHAP using only layout perturbation (words fixed).
         """
