@@ -256,7 +256,7 @@ class SHAPLayoutExplainer(BaseShapExplainer):
         self.mask_full_page = mask_full_page  # if False → zero-box instead
 
     # ---------------------------------------------------------------- helpers
-    def _batched_predict(self, samples: List[DocSample]) -> np.ndarray:
+    def _batched_predict(self, samples) -> np.ndarray:
         """
         Predict a list of DocSample objects in mini-batches to avoid OOM.
         """
