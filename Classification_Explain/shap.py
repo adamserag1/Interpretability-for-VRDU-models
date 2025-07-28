@@ -237,7 +237,7 @@ class BBoxMasker(Masker):
         return out
 
     def invariants(self, inputs):
-        return [False] * len(inputs)  # all boxes are perturbable
+        return np.zeros(len(inputs), dtype=bool) # all boxes are perturbable
 
     def shape(self, inputs):
         return len(inputs)
