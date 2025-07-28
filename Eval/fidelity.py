@@ -64,7 +64,7 @@ def calculate_sufficiency(predict_fn, sample, explanation, mask_token, top_k=5):
     perturbed_sample = DocSample(image=sample.image, words=perturbed_words, bboxes=sample.bboxes, ner_tags=sample.ner_tags, label=sample.label)
 
     perturbed_prob = predict_fn(perturbed_sample)
-    print(f'Removed top {top_k} words')
+    print(f'Kept top {top_k} words')
     print(f'[SUF] original probability: {original_prob}, perturbed_probability: {perturbed_prob}')
     return original_prob - perturbed_prob
 
