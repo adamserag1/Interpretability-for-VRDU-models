@@ -286,7 +286,7 @@ class SHAPVisionExplainer(BaseShapExplainer):
         self.batch_size = batch_size
 
     # ---------------------------------------------------------------- helpers
-    def _batched_predict(self, samples: List[DocSample]) -> np.ndarray:
+    def _batched_predict(self, samples):
         out = []
         for i in range(0, len(samples), self.batch_size):
             out.append(self._predict(samples[i: i + self.batch_size]))
