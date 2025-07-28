@@ -32,17 +32,19 @@ def calculate_comprehensiveness(predict_fn, sample, explanation, mask_token, top
     # Get top-k features to remove
     sorted_features = sorted(explanation.items(), key=lambda item: item[1], reverse=True)[:top_k]
     rem_set = {_as_hashable(k) for k, _ in sorted_features}
-    words=sample.words
-    image=sample.image
-    bboxes=sample.bboxes
-    w, h = image.size
+    w, h = sample.image.size
     if modality == 'text':
         words = [word if _as_hashable(word) not in rem_set else mask_token for word in sample.words]
+        perturbed_sample = DocSample(image=sample.image, words=words, bboxes=sample.bboxes, ner_tags=sample.ner_tags,
+                                     label=sample.label)
     if modality == 'layout':
         bboxes = [bbox if _as_hashable(bbox) not in rem_set else [0,0,w,h] for bbox in sample.bboxes]
+        assert bboxes != sample.bboxes
+        perturbed_sample = DocSample(image=sample.image, words=sample.words, bboxes=bboxes, ner_tags=sample.ner_tags,
+                                     label=sample.label)
     if modality == 'vision':
         print('VISION NOT IMPLEMENTED')
-    perturbed_sample = DocSample(image=image, words=words, bboxes=bboxes, ner_tags=sample.ner_tags, label=sample.label)
+
     print(f'Removed top {top_k} words')
     perturbed_prob = predict_fn(perturbed_sample)
     print(f'[COMP] original probability: {original_prob}, perturbed_probability: {perturbed_prob}')
