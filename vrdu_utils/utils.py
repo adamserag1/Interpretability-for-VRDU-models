@@ -180,4 +180,5 @@ def display_image_grid(images, titles, grid_size=(2, 2), figsize=(10, 10), main_
         ax.set_title(f"{title}")
         ax.axis('off')  # Hide axes for cleaner display
     plt.tight_layout()  # Adjust spacing between images
+    plt.subplots_adjust(top=0.9)
     plt.show()
