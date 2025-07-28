@@ -227,13 +227,16 @@ class BBoxMasker(Masker):
 
     def __call__(self, masks: np.ndarray, inputs, **kwargs):
         """
-        masks: [num_perturbations, num_tokens] binary matrix
-        inputs: original bboxes (length = num_tokens)
+        masks: either 1D or 2D binary arrays.
+        inputs: list of bboxes (len = num_tokens)
         """
+        if masks.ndim == 1:
+            masks = np.expand_dims(masks, axis=0)  # [num_masks, num_tokens]
+
         out = []
         for mask in masks:
             perturbed_boxes = [box if keep else self.mask_box for box, keep in zip(inputs, mask)]
-            out.append((self.words, perturbed_boxes))  # tuple with words fixed
+            out.append((self.words, perturbed_boxes))
         return out
 
     def invariants(self, inputs):
