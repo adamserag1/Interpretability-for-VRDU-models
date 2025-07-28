@@ -4,6 +4,7 @@ import shap
 from vrdu_utils.module_types import DocSample
 from PIL import Image
 from functools import wraps
+from shap.maskers._masker import Masker
 import nltk
 from transformers import LayoutLMv3TokenizerFast
 
@@ -210,39 +211,88 @@ class SHAPTextExplainer(BaseShapExplainer):
         doc = " ".join(sample.words)
         # compute and return first (and only) explanation
         return explainer([doc], max_evals=num_samples)
+class BBoxMasker(Masker):
+    """
+    Custom masker that perturbs only bounding boxes (not words).
+    Used for layout-only SHAP with 'permutation' algorithm.
+    """
 
-class SHAPLayoutExplainer(SHAPTextExplainer):
-    def _make_predict_fn(self, sample: DocSample, align_boxes: bool = None):
-        def fn(z_bin_mat: np.ndarray) -> np.ndarray:
-            perturbed = []
-            w, h = sample.image.size
-            print(z_bin_mat)
-            for z in z_bin_mat:
-                # keep words or replace with mask token (same as text SHAP)
-                # words = [wrd if keep else self.mask_token for wrd, keep in zip(sample.words, z)]
-                # # replace bounding box with full page for masked tokens
-                boxes = [b if keep else [0, 0, w, h] for b, keep in zip(sample.bboxes, z)]
-                perturbed.append(
-                    DocSample(
-                        image=sample.image,
-                        words=sample.words,
-                        bboxes=boxes,
-                        ner_tags=sample.ner_tags,
-                        label=sample.label,
-                    )
-                )
-            return self._batched_predict(perturbed)
+    def __init__(self, reference_words, mask_box=[0, 0, 0, 0]):
+        super().__init__()
+        self.words = reference_words
+        self.mask_box = mask_box
+        self._input_format = "list"
+        self._output_format = "list"
+        self._input_names = ["bboxes"]
 
-        return fn
+    def __call__(self, masks: np.ndarray, inputs, **kwargs):
+        """
+        masks: [num_perturbations, num_tokens] binary matrix
+        inputs: original bboxes (length = num_tokens)
+        """
+        out = []
+        for mask in masks:
+            perturbed_boxes = [box if keep else self.mask_box for box, keep in zip(inputs, mask)]
+            out.append((self.words, perturbed_boxes))  # tuple with words fixed
+        return out
 
-    def explain(self, sample: DocSample, num_samples: int = 2000):
-        fn = self._make_predict_fn(sample)
-        masker = shap.maskers.Text(tokenizer=sentinel_tokenizer, mask_token=self.mask_token)
-        explainer = shap.Explainer(fn, masker=masker, algorithm=self.algorithm, output_names=self.class_names)
-        doc = DELIMITER.join(sample.words)
-        return explainer([doc], max_evals=num_samples)[0]
+    def invariants(self, inputs):
+        return [False] * len(inputs)  # all boxes are perturbable
+
+    def shape(self, inputs):
+        return len(inputs)
+
+    def data(self, inputs):
+        return inputs
+
+    def summarize(self, inputs):
+        return self.words  # for token-wise display
 
 
+class SHAPLayoutExplainer(BaseShapExplainer):
+    """
+    Explainer for layout-only SHAP using Monte Carlo sampling.
+    Only bounding boxes are perturbed. Words are kept constant.
+    """
+
+    def __init__(self, model, encode_fn, device=None, mask_box=[0, 0, 0, 0]):
+        super().__init__(model, encode_fn, algorithm="permutation", device=device)
+        self.mask_box = mask_box
+        self.reference_sample = None  # must be set before explanation
+        self.explainer = None  # initialized later
+
+    def _predict_bbox_only(self, masked_inputs):
+        """
+        Construct full DocSamples using fixed words and perturbed boxes.
+        """
+        assert self.reference_sample is not None
+        hydrated = [
+            DocSample(
+                image=self.reference_sample.image,
+                words=self.reference_sample.words,        # fixed
+                bboxes=boxes,                             # perturbed
+                ner_tags=self.reference_sample.ner_tags,
+                label=self.reference_sample.label,
+            )
+            for (_, boxes) in masked_inputs
+        ]
+        return self._predict(hydrated)
+
+    def explain(self, sample: DocSample, nsamples: int = 512):
+        """
+        Run SHAP using only layout perturbation (words fixed).
+        """
+        self.reference_sample = sample
+        masker = BBoxMasker(reference_words=sample.words, mask_box=self.mask_box)
+
+        self.explainer = shap.Explainer(
+            self._predict_bbox_only,
+            masker,
+            algorithm="permutation",
+            output_names=self.class_names,
+            link=shap.links.logit,
+        )
+        return self.explainer(sample.bboxes, nsamples=nsamples)
 
 class SHAPVisionExplainer(BaseShapExplainer):
     def __init__(self,model,encode_fn,*,label = None,mask_value = "inpaint_telea",batch_size = 32,algorithm = "partition",device = None,):
