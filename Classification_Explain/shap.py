@@ -286,7 +286,7 @@ class SHAPLayoutExplainer(BaseShapExplainer):
         )
 
         # SHAP expects a *batch* → wrap data_row in list
-        return self.explainer([data_row], max_evals=nsamples)[0]
+        return self.explainer(data_row, max_evals=nsamples)
 
 class SHAPVisionExplainer(BaseShapExplainer):
     def __init__(self,model,encode_fn,*,label = None,mask_value = "inpaint_telea",batch_size = 32,algorithm = "partition",device = None,):
