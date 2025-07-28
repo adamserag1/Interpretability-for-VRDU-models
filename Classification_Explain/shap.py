@@ -294,6 +294,7 @@ class SHAPLayoutExplainer(BaseShapExplainer):
             algorithm="permutation",
             output_names=self.class_names,
             link=shap.links.logit,
+            collapse_mask_token='False',
         )
         return self.explainer(sample.bboxes, max_evals=num_samples)
 
