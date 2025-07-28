@@ -104,114 +104,91 @@ class BaseShapExplainer:
     def explain_batch(self, samples, **kwargs):
         return [self.explain(s, **kwargs) for s in samples]
 
-
-class SHAPTextExplainer(BaseShapExplainer):
-
+class SHAPTextMCExplainer(BaseShapExplainer):
     """
-    SHAP explainer for text modality, mirroring LimeTextExplainer structure.
-    Uses shap.Explainer with Text masker and a custom predict_fn that
-    applies encode_fn to DocSample perturbations.
+    Monte-Carlo (permutation) SHAP for *text* modality.
+    Only tokens are perturbed; bounding boxes stay unchanged unless
+    `align_boxes=True`, in which case masked tokens get a dummy page-size box.
     """
 
-    def __init__(
-        self,
-        model,
-        encode_fn,
-        tokenizer,
-        mask_token: str = "|~|",
-        device: str = None,
-        batch_size: int = 16,
-        algorithm: str = 'partition'
-    ):
-        super().__init__(model, encode_fn, algorithm, device)
-        self.mask_token = mask_token
+    def __init__(self,
+                 model,
+                 encode_fn,
+                 tokenizer,
+                 *,
+                 mask_token: str = "|~|",
+                 batch_size: int = 16,
+                 device: str | None = None):
+        super().__init__(model, encode_fn, algorithm="permutation", device=device)
         self.batch_size = batch_size
-        self.algorithm = algorithm
+        self.mask_token = mask_token
         if isinstance(tokenizer, LayoutLMv3TokenizerFast):
-           self.tokenizer = make_layoutlmv3_tokenizer_wrapper(tokenizer)
+            self.tokenizer = make_layoutlmv3_tokenizer_wrapper(tokenizer)
         else:
             self.tokenizer = tokenizer
-    def _batched_predict(self, samples: list[DocSample]) -> np.ndarray:
-        """
-        Batch predictions over DocSample list to avoid OOM.
-        """
+
+    # ---------------------------------------------------------------- helpers
+    def _batched_predict(self, samples):
         out = []
         for i in range(0, len(samples), self.batch_size):
-            out.append(self._predict(samples[i : i + self.batch_size]))
+            out.append(self._predict(samples[i: i + self.batch_size]))
         return np.vstack(out)
 
-    def _make_predict_fn(self, sample: DocSample, align_boxes: bool = False):
-        W, H = sample.image.size
-        dummy_box = [0, 0, W, H]
+    def _make_predict_fn(self, template: DocSample, *, align_boxes: bool):
+        """Return f(mask_matrix) → log-odds for permutation SHAP."""
 
-        def fn(perturbed_texts: list[str]):
-            ds_batch = []
-            for sent in perturbed_texts:
-                words = sent.split()  # SHAP separated tokens with spaces
-                boxes = []
+        w_page, h_page = template.image.size
+        full_box = [0, 0, w_page, h_page]
 
-                for i, w in enumerate(words):
-                    if i < len(sample.bboxes):
-                        # keep original box or collapse it, depending on align_boxes
-                        if align_boxes and w == self.mask_token:
-                            boxes.append(dummy_box)
-                        else:
-                            boxes.append(sample.bboxes[i])
-                    else:
-                        # SHAP produced a word we never had – give it a dummy box
-                        boxes.append(dummy_box)
-
-                ds_batch.append(
-                    DocSample(image=sample.image,
-                              words=words,
-                              bboxes=boxes,
-                              ner_tags=sample.ner_tags,
-                              label=sample.label)
+        def predict(z_mat: np.ndarray) -> np.ndarray:
+            perturbed = []
+            for z in z_mat.astype(int):
+                words = [w if keep else self.mask_token
+                         for w, keep in zip(template.words, z)]
+                # boxes = (template.bboxes if not align_boxes
+                #          else [b if keep else full_box
+                #                for b, keep in zip(template.bboxes, z)])
+                perturbed.append(
+                    DocSample(template.image, words, template.bboxes,
+                              ner_tags=template.ner_tags,
+                              label=template.label)
                 )
-            return self._batched_predict(ds_batch)
+            return self._batched_predict(perturbed)
 
-        return fn
+        return predict
 
-    def explain(
-        self,
-        sample: DocSample,
-        outputs,
-        align_boxes: bool = False,
-        num_samples: int = 2000,
 
-    ):
+    def explain(self,
+                sample: DocSample,
+                *,
+                nsamples: int = 2_000,
+                align_boxes: bool = False,
+                random_state: int | None = None):
         """
-        Explain one DocSample via shap.Explainer(Text masker).
+        Monte-Carlo SHAP explanation of a single DocSample.
 
-        sample      : the DocSample to explain
-        align_boxes : if True, masked tokens zero out their boxes
-        num_samples : maximum evals (max_evals)
-
-        Returns shap.Explanation for the sample.
+        Parameters
+        ----------
+        nsamples     : permutations to draw (trade-off speed vs. variance)
+        align_boxes  : if True, masked tokens also zero-out their bounding box
         """
-        fn = self._make_predict_fn(sample, align_boxes)
-        # background: all-masked
+
         n_tokens = len(sample.words)
-        background = np.random.randint(0, 2, size=(200, n_tokens)),
-        masker = shap.maskers.Text(
-            tokenizer=self.tokenizer,
-            mask_token=self.mask_token,
-            collapse_mask_token='auto'
-        )
-        print(self.algorithm)
-        print("check")
-        explainer = shap.Explainer(
-            fn,
-            masker=masker,
-            algorithm=self.algorithm,
-            link=shap.links.identity,
-            outputs=outputs,
+        data_row = np.ones((1, n_tokens), dtype=int)              # batch-size 1
+        baseline = np.zeros((1, n_tokens), dtype=int)             # all masked
+        masker   = shap.maskers.Independent(baseline)             # 2-D required
 
+        self.explainer = shap.Explainer(
+            self._make_predict_fn(sample, align_boxes=align_boxes),
+            masker,
+            algorithm="permutation",
+            output_names=self.class_names,
+            link=shap.links.identity,   # we already return log-odds
+            seed=random_state,
         )
-        # build sentinel-delimited doc for SHAP
-        doc = " ".join(sample.words)
-        # compute and return first (and only) explanation
-        return explainer([doc], max_evals=num_samples)
+
+        # hand the explainer the batch matrix directly (no list wrapper!)
+        return self.explainer(data_row, max_evals=nsamples)
 
 class SHAPLayoutExplainer(BaseShapExplainer):
     """
