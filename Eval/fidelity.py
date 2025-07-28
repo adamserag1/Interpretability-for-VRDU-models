@@ -39,7 +39,7 @@ def calculate_comprehensiveness(predict_fn, sample, explanation, mask_token, top
                                      label=sample.label)
     if modality == 'layout':
         bboxes = [bbox if _as_hashable(bbox) not in rem_set else [0,0,w,h] for bbox in sample.bboxes]
-        assert bboxes != sample.bboxes
+        assert bboxes == sample.bboxes
         perturbed_sample = DocSample(image=sample.image, words=sample.words, bboxes=bboxes, ner_tags=sample.ner_tags,
                                      label=sample.label)
     if modality == 'vision':
