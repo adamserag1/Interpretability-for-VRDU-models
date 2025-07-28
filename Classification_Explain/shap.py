@@ -302,7 +302,7 @@ class SHAPLayoutExplainer(BaseShapExplainer):
         n_tokens = len(sample.bboxes)
         # 1 = keep, 0 = mask
         data_row = np.ones(n_tokens, dtype=int)
-        baseline = np.zeros(n_tokens, dtype=int)  # what the masker inserts
+        baseline = np.zeros((1, n_tokens), dtype=int) # what the masker inserts
 
         masker = shap.maskers.Independent(baseline)
 
