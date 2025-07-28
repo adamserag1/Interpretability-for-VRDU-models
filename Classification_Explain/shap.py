@@ -240,7 +240,7 @@ class BBoxMasker(Masker):
         return np.zeros((1, len(inputs)), dtype=bool)# all boxes are perturbable
 
     def shape(self, inputs):
-        return len(inputs)
+        return (1, len(inputs))
 
     def data(self, inputs):
         return inputs
