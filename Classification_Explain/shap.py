@@ -237,7 +237,7 @@ class BBoxMasker(Masker):
         for mask in masks:
             perturbed_boxes = [box if keep else self.mask_box for box, keep in zip(inputs, mask)]
             out.append((self.words, perturbed_boxes))
-        return return np.array(out, dtype=object)
+        return np.array(out, dtype=object)
 
     def invariants(self, inputs):
         return np.zeros((1, len(inputs)), dtype=bool)# all boxes are perturbable
