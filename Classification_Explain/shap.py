@@ -116,7 +116,7 @@ class SHAPTextExplainer(BaseShapExplainer):
         model,
         encode_fn,
         tokenizer,
-        mask_token: str = "[UNK]",
+        mask_token: str = "|~|",
         device: str = None,
         batch_size: int = 16,
         algorithm: str = 'partition'
@@ -203,7 +203,8 @@ class SHAPTextExplainer(BaseShapExplainer):
             masker=masker,
             algorithm=self.algorithm,
             link=shap.links.identity,
-            outputs=outputs
+            outputs=outputs,
+
         )
         # build sentinel-delimited doc for SHAP
         doc = " ".join(sample.words)
