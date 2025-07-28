@@ -328,7 +328,7 @@ class SHAPVisionExplainer(BaseShapExplainer):
         nsamples : number of feature evaluations (permutation samples)
         """
 
-        img_np = np.asarray(sample.image)
+        img_np = np.asarray(sample.image.convert('RGB'))
         if img_np.ndim == 2:  # greyscale → add channel
             img_np = img_np[..., None]
 
