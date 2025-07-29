@@ -68,7 +68,7 @@ def make_bros_encoder(tokenizer, ner = False, max_length = 256):
             # print(samples.bboxes, samples.image_path, samples.ner_tags) ## DEBUGGING
             for s in samples:
                 for idx, (bboxes, img_path, labels) in enumerate(
-                        zip(s.bboxes, s.image_path, s.ner_tags)):
+                        zip(s.bboxes, s.image, s.ner_tags)):
                     width, height = Image.open(img_path).size
                     normalized_bboxes = [normalize_bbox(bbox, width, height) for bbox in bboxes]
 
