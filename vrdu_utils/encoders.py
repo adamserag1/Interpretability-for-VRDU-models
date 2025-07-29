@@ -67,9 +67,10 @@ def make_bros_encoder(tokenizer, ner = False, max_length = 256):
             batch_normalized_bboxes, encoded_labels = [], []
             # print(samples.bboxes, samples.image_path, samples.ner_tags) ## DEBUGGING
             for s in samples:
+                width, height = Image.open(s.image).size
                 for idx, (bboxes, img_path, labels) in enumerate(
                         zip(s.bboxes, s.image, s.ner_tags)):
-                    width, height = Image.open(img_path).size
+
                     normalized_bboxes = [normalize_bbox(bbox, width, height) for bbox in bboxes]
 
                     # Align boxes to sub words
