@@ -343,7 +343,7 @@ class SHAPVisionExplainer(BaseShapExplainer):
         self.explainer = shap.Explainer(
             self._make_predict_fn(sample),
             masker,
-            output_names = self.class_names[self.class_idx],
+            output_names = [self.class_names[self.class_idx]],
             algorithm="partition",
             link=shap.links.identity,  # _predict already returns log-odds
             seed=random_state,
@@ -355,5 +355,5 @@ class SHAPVisionExplainer(BaseShapExplainer):
             np.expand_dims(img_np, 0),
             max_evals=nsamples,
             batch_size=max_batch,
-            outputs = [self.class_idx]
+            # outputs = [self.class_idx]
         )[0]
