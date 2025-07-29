@@ -313,9 +313,7 @@ class SHAPVisionExplainer(BaseShapExplainer):
                 for arr in img_batch
             ]
             out = self._batched_predict(perturbed)  # (N, C)
-            if out.ndim == 2:  # slice to the class we need
-                out = out[:, class_idx]  # → (N,)
-            return out  # 1-D as Partition expects
+            out = out[:, class_idx]  # → (N,)
 
         return predict
 
@@ -355,5 +353,5 @@ class SHAPVisionExplainer(BaseShapExplainer):
             np.expand_dims(img_np, 0),
             max_evals=nsamples,
             batch_size=max_batch,
-            outputs=[self.outputs],
+            outputs=self.outputs,
         )[0]
