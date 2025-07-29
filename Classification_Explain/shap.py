@@ -344,6 +344,7 @@ class SHAPVisionExplainer(BaseShapExplainer):
             self._make_predict_fn(sample),
             masker,
             output_names = 'FORM',# self.class_names[self.class_idx],
+            output_indices = self.class_idx,
             algorithm="partition",
             link=shap.links.identity,  # _predict already returns log-odds
             seed=random_state,
