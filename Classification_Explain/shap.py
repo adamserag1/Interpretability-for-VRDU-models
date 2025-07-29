@@ -290,10 +290,7 @@ class SHAPVisionExplainer(BaseShapExplainer):
 
     # ---------------------------------------------------------------- helpers
     def _batched_predict(self, samples):
-        out = self._predict(samples)  # (N, C) or (N, 1)
-        if out.ndim == 2 and out.shape[1] == 1:
-            out = out[:, 0]  # -> (N,)
-        return out
+        return self._predict(samples)
         # if len(samples) <= self.batch_size:
         #     return self._predict(samples)  # ← return!
         # # slow path: rare fallback
@@ -305,23 +302,20 @@ class SHAPVisionExplainer(BaseShapExplainer):
         # return np.vstack(out)
 
     def _make_predict_fn(self, template: DocSample):
-        """
-        Returns f(img_batch_np) -> log-odds.  Each N×H×W×C image comes from SHAP.
-        Only the *image* is replaced; words/bboxes copied from template.
-        """
-        words = template.words
-        bboxes = template.bboxes
-        ner = template.ner_tags
-        label = template.label
+        words, bboxes = template.words, template.bboxes
+        ner, label = template.ner_tags, template.label
+        class_idx = self.outputs  # single int
 
         def predict(img_batch: np.ndarray) -> np.ndarray:
             perturbed = [
                 DocSample(Image.fromarray(arr.astype(np.uint8)),
-                          words, bboxes,
-                          ner_tags=ner, label=label)
+                          words, bboxes, ner_tags=ner, label=label)
                 for arr in img_batch
             ]
-            return self._batched_predict(perturbed)
+            out = self._batched_predict(perturbed)  # (N, C)
+            if out.ndim == 2:  # slice to the class we need
+                out = out[:, class_idx]  # → (N,)
+            return out  # 1-D as Partition expects
 
         return predict
 
