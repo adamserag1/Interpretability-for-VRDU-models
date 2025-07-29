@@ -314,7 +314,7 @@ class SHAPVisionExplainer(BaseShapExplainer):
             ]
             # out = self._batched_predict(perturbed)  # (N, C)
             # out = out[:, class_idx]  # → (N,)
-            out = self.batched_predict(perturbed)
+            out = self._batched_predict(perturbed)
             return out[:, self.class_idx]
             # return self._batched_predict(perturbed)
         return predict
