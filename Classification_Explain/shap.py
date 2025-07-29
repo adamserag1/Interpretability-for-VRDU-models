@@ -339,8 +339,10 @@ class SHAPVisionExplainer(BaseShapExplainer):
             masker,
             # algorithm="permutation",
             output_names=self.class_names,
+            ouptputs = [self.outputs],
             link=shap.links.identity,  # _predict already returns log-odds
             seed=random_state,
+            batch_size=max_batch,
         )
 
         # SHAP expects batch input → wrap in array of shape (1, H, W, C)
