@@ -186,7 +186,7 @@ class LimeVisionExplainer(BaseLimeExplainer):
             img_np,
             classifier_fn = self._make_predict_fn(sample),
             segmentation_fn = lambda img: slic(img, **self.seg_kwargs),
-            top_labels = self.label,
+            labels = (self.label,),
             hide_color=hide_color,
             num_samples = num_samples,
             batch_size = self.batch_size
