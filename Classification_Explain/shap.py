@@ -342,7 +342,6 @@ class SHAPVisionExplainer(BaseShapExplainer):
             self._make_predict_fn(sample),
             masker,
             # algorithm="permutation",
-            output_names=self.class_names,
             link=shap.links.identity,  # _predict already returns log-odds
             seed=random_state,
             batch_size=max_batch,
