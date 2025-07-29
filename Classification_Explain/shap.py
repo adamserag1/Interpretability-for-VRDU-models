@@ -291,15 +291,16 @@ class SHAPVisionExplainer(BaseShapExplainer):
     # ---------------------------------------------------------------- helpers
     def _batched_predict(self, samples):
         # fast path: one forward pass
-        if len(samples) <= self.batch_size:
-            return self._predict(samples)  # ← return!
-        # slow path: rare fallback
-        out = []
-        for i in range(0, len(samples), self.batch_size):
-            out.append(self._predict(samples[i: i + self.batch_size]))
-        if out.shape[1] == 1:  # ← binary or single-output case
-            out = out.squeeze(-1)
-        return np.vstack(out)
+        return self._predict(samples)
+        # if len(samples) <= self.batch_size:
+        #     return self._predict(samples)  # ← return!
+        # # slow path: rare fallback
+        # out = []
+        # for i in range(0, len(samples), self.batch_size):
+        #     out.append(self._predict(samples[i: i + self.batch_size]))
+        # if out.shape[1] == 1:  # ← binary or single-output case
+        #     out = out.squeeze(-1)
+        # return np.vstack(out)
 
     def _make_predict_fn(self, template: DocSample):
         """
