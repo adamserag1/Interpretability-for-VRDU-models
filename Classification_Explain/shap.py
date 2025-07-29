@@ -304,7 +304,7 @@ class SHAPVisionExplainer(BaseShapExplainer):
     def _make_predict_fn(self, template: DocSample):
         words, bboxes = template.words, template.bboxes
         ner, label = template.ner_tags, template.label
-        class_idx = self.outputs  # single int
+        class_idx = self.class_idx  # single int
 
         def predict(img_batch: np.ndarray) -> np.ndarray:
             perturbed = [
