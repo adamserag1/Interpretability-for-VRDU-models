@@ -286,7 +286,11 @@ class SHAPVisionExplainer(BaseShapExplainer):
         self.batch_size = batch_size
 
     # ---------------------------------------------------------------- helpers
-    def _batched_predict(self, samples) -> np.ndarray:
+    def _batched_predict(self, samples):
+        # SHAP now respects self.batch_size, so usually len(samples) <= self.batch_size
+        if len(samples) <= self.batch_size:
+            return self._predict(samples)  # single forward pass
+        # (rare) fallback if SHAP ever sends more than we can fit
         out = []
         for i in range(0, len(samples), self.batch_size):
             out.append(self._predict(samples[i: i + self.batch_size]))
