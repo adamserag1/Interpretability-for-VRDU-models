@@ -297,6 +297,8 @@ class SHAPVisionExplainer(BaseShapExplainer):
         out = []
         for i in range(0, len(samples), self.batch_size):
             out.append(self._predict(samples[i: i + self.batch_size]))
+        if out.shape[1] == 1:  # ← binary or single-output case
+            out = out.squeeze(-1)
         return np.vstack(out)
 
     def _make_predict_fn(self, template: DocSample):
@@ -346,7 +348,6 @@ class SHAPVisionExplainer(BaseShapExplainer):
             masker,
             # algorithm="permutation",
             output_names=self.class_names,
-            outputs = [self.outputs],
             link=shap.links.identity,  # _predict already returns log-odds
             seed=random_state,
             batch_size=max_batch,
@@ -356,5 +357,6 @@ class SHAPVisionExplainer(BaseShapExplainer):
         return self.explainer(
             np.expand_dims(img_np, 0),
             max_evals=nsamples,
-            batch_size=max_batch
+            batch_size=max_batch,
+            outputs=[self.outputs],
         )[0]
