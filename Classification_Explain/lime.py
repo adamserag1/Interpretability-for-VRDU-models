@@ -159,13 +159,7 @@ class LimeVisionExplainer(BaseLimeExplainer):
         self.label = label
 
     def _batched_predict(self, samples):
-        out = []
-        it = range(0, len(samples), self.batch_size)
-        from tqdm.auto import tqdm
-        it = tqdm(it, desc="[LIME] - VISION", leave=False)
-        for i in it:
-            out.append(self._predict(samples[i:i + self.batch_size]))
-        return np.vstack(out)
+        return self._predict(samples)
 
     def _make_predict_fn(self, sample: DocSample):
         def fn(img_list):
@@ -184,7 +178,7 @@ class LimeVisionExplainer(BaseLimeExplainer):
         return fn
 
 
-    def explain(self, sample, *, num_samples = 8000, num_features = 30, hide_color=(127, 127, 127)):
+    def explain(self, sample, *, num_samples = 8000, num_features = 30, hide_color=(255, 255, 255)):
         explainer = LimeImageExplainer(random_state=0)
         img_np = np.array(sample.image)
 
