@@ -141,6 +141,7 @@ def row_to_docsample(ex):
     img = ex["image"]
     if not isinstance(img, Image.Image):
         img = Image.fromarray(img)
+    label = ex["label"]
 
     w, h = img.size
     bbs = [normalize_bbox(b, w, h) for b in ex["bboxes"]]   # safety guard
@@ -159,7 +160,11 @@ class DocSampleDataset(Dataset):
 
     def __getitem__(self, idx):
         sample = self.ds[idx]
-        return DocSample(image=sample["image"], words=sample["words"], bboxes=sample["bboxes"], label=sample["label"], ner_tags=sample.get("ner_tags")), idx
+        try:
+            label = sample["label"]
+        except:
+            label = 'FUNSD-SAMPLE'
+        return DocSample(image=sample["image"], words=sample["words"], bboxes=sample["bboxes"], label=label, ner_tags=sample.get("ner_tags")), idx
         return row_to_docsample(self.ds[idx])
 
     def __len__(self):
