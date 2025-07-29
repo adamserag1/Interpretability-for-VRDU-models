@@ -312,9 +312,9 @@ class SHAPVisionExplainer(BaseShapExplainer):
                           words, bboxes, ner_tags=ner, label=label)
                 for arr in img_batch
             ]
-            out = self._batched_predict(perturbed)  # (N, C)
-            out = out[:, class_idx]  # → (N,)
-
+            # out = self._batched_predict(perturbed)  # (N, C)
+            # out = out[:, class_idx]  # → (N,)
+            return self._batched_predict(perturbed)
         return predict
 
 
@@ -341,6 +341,7 @@ class SHAPVisionExplainer(BaseShapExplainer):
         self.explainer = shap.Explainer(
             self._make_predict_fn(sample),
             masker,
+            output_names = self.class_names,
             # algorithm="permutation",
             link=shap.links.identity,  # _predict already returns log-odds
             seed=random_state,
@@ -352,5 +353,4 @@ class SHAPVisionExplainer(BaseShapExplainer):
             np.expand_dims(img_np, 0),
             max_evals=nsamples,
             batch_size=max_batch,
-            outputs=self.outputs,
         )[0]
