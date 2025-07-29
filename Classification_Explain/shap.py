@@ -277,13 +277,16 @@ class SHAPVisionExplainer(BaseShapExplainer):
     def __init__(self,
                  model,
                  encode_fn,
+                 outputs,
                  *,
                  mask_value: str = "inpaint_telea",
                  batch_size: int = 32,
-                 device: str | None = None):
+                 device: str | None = None,
+                 ):
         super().__init__(model, encode_fn, algorithm="permutation", device=device)
         self.mask_value = mask_value
         self.batch_size = batch_size
+        self.outputs = outputs
 
     # ---------------------------------------------------------------- helpers
     def _batched_predict(self, samples):
