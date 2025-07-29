@@ -279,7 +279,7 @@ class SHAPVisionExplainer(BaseShapExplainer):
                  encode_fn,
                  outputs,
                  *,
-                 mask_value: str = "inpaint_telea",
+                 mask_value: str = "inpaint_ns",
                  batch_size: int = 32,
                  device: str | None = None,
                  ):
@@ -290,8 +290,10 @@ class SHAPVisionExplainer(BaseShapExplainer):
 
     # ---------------------------------------------------------------- helpers
     def _batched_predict(self, samples):
-        # fast path: one forward pass
-        return self._predict(samples)
+        out = self._predict(samples)  # (N, C) or (N, 1)
+        if out.ndim == 2 and out.shape[1] == 1:
+            out = out[:, 0]  # -> (N,)
+        return out
         # if len(samples) <= self.batch_size:
         #     return self._predict(samples)  # ← return!
         # # slow path: rare fallback
