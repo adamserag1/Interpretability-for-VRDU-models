@@ -290,15 +290,14 @@ class SHAPVisionExplainer(BaseShapExplainer):
 
     # ---------------------------------------------------------------- helpers
     def _batched_predict(self, samples):
-        # SHAP now respects self.batch_size, so usually len(samples) <= self.batch_size
-        self._predict(samples)
-        # if len(samples) <= self.batch_size:
-        #     return self._predict(samples)  # single forward pass
-        # # (rare) fallback if SHAP ever sends more than we can fit
-        # out = []
-        # for i in range(0, len(samples), self.batch_size):
-        #     out.append(self._predict(samples[i: i + self.batch_size]))
-        # return np.vstack(out)
+        # fast path: one forward pass
+        if len(samples) <= self.batch_size:
+            return self._predict(samples)  # ← return!
+        # slow path: rare fallback
+        out = []
+        for i in range(0, len(samples), self.batch_size):
+            out.append(self._predict(samples[i: i + self.batch_size]))
+        return np.vstack(out)
 
     def _make_predict_fn(self, template: DocSample):
         """
@@ -347,7 +346,7 @@ class SHAPVisionExplainer(BaseShapExplainer):
             masker,
             # algorithm="permutation",
             output_names=self.class_names,
-            ouptputs = [self.outputs],
+            outputs = [self.outputs],
             link=shap.links.identity,  # _predict already returns log-odds
             seed=random_state,
             batch_size=max_batch,
