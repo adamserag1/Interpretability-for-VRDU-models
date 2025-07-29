@@ -277,7 +277,7 @@ class SHAPVisionExplainer(BaseShapExplainer):
     def __init__(self,
                  model,
                  encode_fn,
-                 outputs,
+                 class_idx,
                  *,
                  mask_value: str = "inpaint_ns",
                  batch_size: int = 32,
@@ -286,7 +286,7 @@ class SHAPVisionExplainer(BaseShapExplainer):
         super().__init__(model, encode_fn, algorithm="permutation", device=device)
         self.mask_value = mask_value
         self.batch_size = batch_size
-        self.outputs = outputs
+        self.class_idx = class_idx
 
     # ---------------------------------------------------------------- helpers
     def _batched_predict(self, samples):
@@ -314,7 +314,9 @@ class SHAPVisionExplainer(BaseShapExplainer):
             ]
             # out = self._batched_predict(perturbed)  # (N, C)
             # out = out[:, class_idx]  # → (N,)
-            return self._batched_predict(perturbed)
+            out = self.batched_predict(perturbed)
+            return out[:, self.class_idx]
+            # return self._batched_predict(perturbed)
         return predict
 
 
@@ -341,8 +343,8 @@ class SHAPVisionExplainer(BaseShapExplainer):
         self.explainer = shap.Explainer(
             self._make_predict_fn(sample),
             masker,
-            output_names = self.class_names,
-            # algorithm="permutation",
+            # output_names = self.class_names,
+            algorithm="permutation",
             link=shap.links.identity,  # _predict already returns log-odds
             seed=random_state,
             batch_size=max_batch,
@@ -353,4 +355,5 @@ class SHAPVisionExplainer(BaseShapExplainer):
             np.expand_dims(img_np, 0),
             max_evals=nsamples,
             batch_size=max_batch,
+            outputs = [self.class_idx]
         )[0]
