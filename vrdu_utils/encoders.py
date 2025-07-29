@@ -54,7 +54,7 @@ def make_bros_encoder(tokenizer, ner = False, max_length = 256):
     """
     def encode(samples, device):
         words = [s.words for s in samples]
-
+        print(samples)
         enc = tokenizer(
             words,
             is_split_into_words=True,
