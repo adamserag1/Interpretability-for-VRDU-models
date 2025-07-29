@@ -338,8 +338,8 @@ class SHAPVisionExplainer(BaseShapExplainer):
         if img_np.ndim == 2:  # greyscale → add channel
             img_np = img_np[..., None]
 
+        assert isinstance(self.class_names[self.class_idx], str)
         masker = shap.maskers.Image(self.mask_value, shape=img_np.shape)
-
         self.explainer = shap.Explainer(
             self._make_predict_fn(sample),
             masker,
