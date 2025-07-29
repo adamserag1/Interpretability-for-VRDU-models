@@ -84,8 +84,8 @@ def make_bros_encoder(tokenizer, ner = False, max_length = 256):
                 batch_normalized_bboxes.append(aligned_boxes)
                 encoded_labels.append(aligned_labels)
 
-            enc['bbox'] = batch_normalized_bboxes
-            enc['labels'] = encoded_labels
+            enc['bbox'] = torch.tensor(batch_normalized_bboxes, dtype=torch.float)
+            enc['labels'] =torch.tensor(encoded_labels, dtype=torch.long)
         else:
             aligned_boxes = []
             for idx, s in enumerate(samples):
