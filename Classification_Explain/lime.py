@@ -206,7 +206,6 @@ class NerAdapter:
         self.target_token_fn = target_token_fn
         self.target_labels   = target_labels
         super().__init__(*args, **kwargs)
-        self.device = device
 
     @torch.no_grad()
     def _predict(self, samples):
