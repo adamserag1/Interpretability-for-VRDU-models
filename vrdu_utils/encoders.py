@@ -103,7 +103,7 @@ def make_bros_encoder(tokenizer, ner = False, max_length = 512):
                 )
             enc["bbox"] = torch.tensor(aligned_boxes, dtype=torch.long)
 
-        return _stack_on_decive(enc, device)
+        return enc, _stack_on_decive(enc, device)
     return encode
 
 # TODO: Add token classification encoders
