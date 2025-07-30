@@ -367,23 +367,14 @@ class NerAdapter:
 
     @torch.no_grad()
     def _predict(self, samples):
-        enc, _ = self._encode([samples], device)
-        out = self.model(**enc)
-        probs = torch.softmax(out, dim=-1).cpu.numpy()
+        enc, _ = self._encode(samples)
+        out = self.model(**enc).logits  # (batch, seq, n_labels)
+        probs = torch.softmax(out, dim=-1).cpu().numpy()
 
-        tok_idx = self.target_token_fn(enc)
-        tok_probs = probs[:, tok_idx, :]
+        tok_idx = self.target_token_fn(enc)  # integer
+        tok_probs = probs[:, tok_idx, :]  # keep *all* labels
 
-        if getattr(self, "target_labels", None) is None:
-            chosen = tok_probs.max(dim=-1).values[:, None]
-        else:
-            chosen = tok_probs[: self.target_labels]
-            if chosen.ndim == 1:
-                chosen = chosen[:, None]
-        if isinstance(chosen, torch.Tensor):
-            return chosen.cpu().numpy()
-        return chosen
-
+        return tok_probs
 class SHAPTextNer(NerAdapter, SHAPTextExplainer):
     pass
 
