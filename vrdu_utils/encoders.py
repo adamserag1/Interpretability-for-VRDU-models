@@ -18,6 +18,9 @@ def make_layoutlmv3_encoder(processor, ner = False, max_length: int = 512):
         boxes = []
 
         if not ner:
+            for s in samples:
+                w, h = s.image.size
+                boxes.append([normalize_bbox(b, w, h) for b in s.bboxes])
             enc = processor(
                 images,
                 words,
@@ -28,9 +31,9 @@ def make_layoutlmv3_encoder(processor, ner = False, max_length: int = 512):
                 return_tensors="pt",
             )
         else:
-            for s in samples:
-                w, h = s.image.size
-                boxes.append([normalize_bbox(b, w, h) for b in s.bboxes])
+            # for s in samples:
+            #     w, h = s.image.size
+            #     boxes.append([normalize_bbox(b, w, h) for b in s.bboxes])
             enc = processor(
                 images,
                 words,
@@ -41,8 +44,8 @@ def make_layoutlmv3_encoder(processor, ner = False, max_length: int = 512):
                 max_length=max_length,
                 return_tensors="pt",
             )
-        if "bbox" in enc:
-            enc["bbox"] = enc["bbox"].clamp_(0, 1000)
+        # if "bbox" in enc:
+        #     enc["bbox"] = enc["bbox"].clamp_(0, 1000)
 
         return _stack_on_decive(enc, device)
 
