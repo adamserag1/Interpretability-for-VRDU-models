@@ -46,7 +46,7 @@ def make_layoutlmv3_encoder(processor, ner = False, max_length: int = 512):
                 # max_length=max_length,
                 return_tensors="pt",
             )
-            return enc, _stack_on_decive(enc, device)
+            return enc.to(device), _stack_on_decive(enc, device)
         # if "bbox" in enc:
         #     enc["bbox"] = enc["bbox"].clamp_(0, 1000)
 
@@ -92,7 +92,7 @@ def make_bros_encoder(tokenizer, ner = False, max_length = 512):
 
             enc['bbox'] = torch.tensor(batch_normalized_bboxes, dtype=torch.float)
             enc['labels'] =torch.tensor(encoded_labels, dtype=torch.long)
-            return enc, _stack_on_decive(enc, device)
+            return enc.to(device), _stack_on_decive(enc, device)
         else:
             aligned_boxes = []
             for idx, s in enumerate(samples):
