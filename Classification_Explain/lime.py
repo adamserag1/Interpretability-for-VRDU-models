@@ -208,7 +208,7 @@ class NerAdapter:
         super().__init__(*args, **kwargs)
 
     @torch.no_grad()
-    def _predict(self, samples):
+    def _predict(self, samples, device):
         enc = self._encode([samples], device)
         out = self.model(**enc).logits
         probs = torch.softmax(out, dim=-1).cpu().numpy()
@@ -222,6 +222,7 @@ class NerAdapter:
             chosen = tok_probs[:, self.target_labels]
             if chosen.ndim == 1:
                 chosen = chosen[:, None]
+
         if isinstance(chosen, torch.Tensor):
             return chosen.cpu().numpy()
         return chosen
