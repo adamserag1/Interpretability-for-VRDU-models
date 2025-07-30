@@ -209,7 +209,7 @@ class NerAdapter:
 
     @torch.no_grad()
     def _predict(self, samples):
-        enc = self._encode(samples)
+        enc, _ = self._encode(samples)
         out = self.model(**enc).logits  # (batch, seq, n_labels)
         probs = torch.softmax(out, dim=-1).cpu().numpy()
 
