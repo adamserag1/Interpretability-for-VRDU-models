@@ -16,9 +16,7 @@ def make_layoutlmv3_encoder(processor, ner = False, max_length: int = 256):
         ner_tags = [s.ner_tags for s in samples]
 
         boxes = []
-        for s in samples:
-            w, h = s.image.size
-            boxes.append([normalize_bbox(b, w, h) for b in s.bboxes])
+
         if not ner:
             enc = processor(
                 images,
@@ -30,6 +28,9 @@ def make_layoutlmv3_encoder(processor, ner = False, max_length: int = 256):
                 return_tensors="pt",
             )
         else:
+            for s in samples:
+                w, h = s.image.size
+                boxes.append([normalize_bbox(b, w, h) for b in s.bboxes])
             enc = processor(
                 images,
                 words,
@@ -69,7 +70,7 @@ def make_bros_encoder(tokenizer, ner = False, max_length = 256):
 
             for idx, s in enumerate(samples):
                 width, height = s.image.size
-                normalized_bboxes = [normalize_bbox(bbox, width, height) for bbox in s.bboxes]
+                #normalized_bboxes = [normalize_bbox(bbox, width, height) for bbox in s.bboxes]
 
                 # Align boxes to sub words
                 aligned_boxes, aligned_labels = [], []
@@ -78,7 +79,7 @@ def make_bros_encoder(tokenizer, ner = False, max_length = 256):
                         aligned_boxes.append([0, 0, 0, 0])
                         aligned_labels.append(-100)
                     else:
-                        aligned_boxes.append(normalized_bboxes[word_id])
+                        aligned_boxes.append(s.bboxes[word_id])
                         aligned_labels.append(s.ner_tags[word_id])
 
                 batch_normalized_bboxes.append(aligned_boxes)
