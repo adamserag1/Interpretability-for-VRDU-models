@@ -87,7 +87,6 @@ def calculate_sufficiency(predict_fn, sample, explanation, mask_token, top_k=5, 
     # Get top-k features to keep
     sorted_features = sorted(explanation.items(), key=lambda item: item[1], reverse=True)
     top_k = min(top_k, len(sorted_features))
-
     # Create perturbed sample by keeping only top features
     w, h = sample.image.size
     if modality == 'text':
