@@ -45,6 +45,7 @@ def make_layoutlmv3_encoder(processor, ner = False, max_length: int = 512):
                 max_length=max_length,
                 return_tensors="pt",
             )
+            return enc.to(device)
         # if "bbox" in enc:
         #     enc["bbox"] = enc["bbox"].clamp_(0, 1000)
 
