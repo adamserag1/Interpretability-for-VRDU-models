@@ -357,3 +357,38 @@ class SHAPVisionExplainer(BaseShapExplainer):
             batch_size=max_batch,
             # outputs = [self.class_idx]
         )[0]
+
+
+class NerAdapter:
+    def __init__(self, *args, target_token_fn, target_labels= None, **kwargs):
+        self.target_token_fn = target_token_fn
+        self.target_labels = target_labels
+        super().__init__(*args, **kwargs)
+
+    @torch.no_grad()
+    def _predict(self, samples):
+        enc, _ = self._encode([samples], device)
+        out = self.model(**enc)
+        probs = torch.softmax(out, dim=-1).cpu.numpy()
+
+        tok_idx = self.target_token_fn(enc)
+        tok_probs = probs[:, tok_idx, :]
+
+        if getattr(self, "target_labels", None) is None:
+            chosen = tok_probs.max(dim=-1).values[:, None]
+        else:
+            chosen = tok_probs[: self.target_labels]
+            if chosen.ndim == 1:
+                chosen = chosen[:, None]
+        if isinstance(chosen, torch.Tensor):
+            return chosen.cpu().numpy()
+        return chosen
+
+class SHAPTextNer(NerAdapter, SHAPTextExplainer):
+    pass
+
+class SHAPLayoutNer(NerAdapter, SHAPLayoutExplainer):
+    pass
+
+class SHAPVisionNer(NerAdapter, SHAPVisionExplainer):
+    pass
