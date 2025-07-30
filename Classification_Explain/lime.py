@@ -206,10 +206,11 @@ class NerAdapter:
         self.target_token_fn = target_token_fn
         self.target_labels   = target_labels
         super().__init__(*args, **kwargs)
+        self.device = device
 
     @torch.no_grad()
-    def _predict(self, samples, device):
-        enc = self._encode([samples], device)
+    def _predict(self, samples):
+        enc = self._encode([samples], self.device)
         out = self.model(**enc).logits
         probs = torch.softmax(out, dim=-1).cpu().numpy()
 
