@@ -6,7 +6,7 @@ from vrdu_utils.utils import normalize_bbox
 def _stack_on_decive(enc, device):
     return {k: v.to(device) for k, v in enc.items()}
 
-def make_layoutlmv3_encoder(processor, ner = False, max_length: int = 256):
+def make_layoutlmv3_encoder(processor, ner = False, max_length: int = 512):
     """"
     LayoutLMv3 encoder for document classification.
     """
@@ -49,7 +49,7 @@ def make_layoutlmv3_encoder(processor, ner = False, max_length: int = 256):
     return encode
 
 
-def make_bros_encoder(tokenizer, ner = False, max_length = 256):
+def make_bros_encoder(tokenizer, ner = False, max_length = 512):
     """
     BROS encoder for document classification.
     """
