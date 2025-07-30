@@ -21,7 +21,7 @@ def _token_prob(model, encode_fn, device, sample: DocSample,
     Returns p(tag = target_label_id) for the first sub-token produced
     by `target_token_fn` on *one* DocSample.
     """
-    enc = encode_fn([sample], device)          # BatchEncoding (batch=1)
+    enc, _ = encode_fn([sample], device)          # BatchEncoding (batch=1)
     logits = model(**enc).logits[0]            # (seq_len, n_labels)
     tok_idx = target_token_fn(enc)             # integer position in seq
     return torch.softmax(logits[tok_idx], -1)[target_label_id].item()
