@@ -43,7 +43,7 @@ def make_layoutlmv3_encoder(processor, ner = False, max_length: int = 512):
                 word_labels=ner_tags,
                 truncation=True,
                 padding="max_length",
-                max_length=max_length,
+                # max_length=max_length,
                 return_tensors="pt",
             )
             return enc.to(device), _stack_on_decive(enc, device)
