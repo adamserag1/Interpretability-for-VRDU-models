@@ -14,6 +14,18 @@ def _top_k_indices(sorted_features, top_k):
     """Return the *indices* of the top-k layout boxes."""
     return {i for i, (_box, _score) in enumerate(sorted_features[:top_k])}
 
+@torch.no_grad()
+def _token_prob(model, encode_fn, device, sample: DocSample,
+                target_token_fn: Callable, target_label_id: int) -> float:
+    """
+    Returns p(tag = target_label_id) for the first sub-token produced
+    by `target_token_fn` on *one* DocSample.
+    """
+    enc = encode_fn([sample], device)          # BatchEncoding (batch=1)
+    logits = model(**enc).logits[0]            # (seq_len, n_labels)
+    tok_idx = target_token_fn(enc)             # integer position in seq
+    return torch.softmax(logits[tok_idx], -1)[target_label_id].item()
+
 def calculate_comprehensiveness(predict_fn, sample, explanation, mask_token, top_k=5, modality='text'):
     """
     Calculates the comprehensiveness score for a given explanation.
@@ -105,26 +117,34 @@ class FidelityEvaluator:
     """
     A class to evaluate the fidelity of explanations for a given model.
     """
-    def __init__(self, model, encode_fn, mask_token = "[UNK]", device=None):
+    def __init__(self, model, encode_fn, mask_token = "[UNK]", device=None, target_token_fn=None, target_label_id=None):
         self.model = model.eval()
         self.encode_fn = encode_fn
         self.mask_token = mask_token
         self.device = torch.device(device or "cuda" if torch.cuda.is_available() else "cpu")
         self.model.to(self.device)
 
+        self._token_fn = target_token_fn
+        self._label_id = target_label_id
+
     def _get_prediction_function(self, original_label_index):
         """
         Returns a function that predicts the probability of the original label for a given sample.
         """
-        @torch.no_grad()
-        def predict_fn(sample: DocSample):
-            encoded = self.encode_fn([sample], self.device)
-            try:
-                logits = self.model(**encoded).logits
-            except:
-                logits = self.model(**encoded)["logits"]
-            probs = torch.softmax(logits, dim=-1)
-            return probs[0, original_label_index].item()
+        if self._token_fn is None:
+            @torch.no_grad()
+            def predict_fn(sample: DocSample):
+                encoded = self.encode_fn([sample], self.device)
+                try:
+                    logits = self.model(**encoded).logits
+                except:
+                    logits = self.model(**encoded)["logits"]
+                probs = torch.softmax(logits, dim=-1)
+                return probs[0, original_label_index].item()
+        else:
+            def predict_fn(sample: DocSample):
+                return _token_prob(self.model, self.encode_fn, self.device,
+                                   sample, self._token_fn, self._label_id)
         return predict_fn
 
     def evaluate(self, sample: DocSample, explanation, top_k_fraction= 0.2):
