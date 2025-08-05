@@ -256,7 +256,7 @@ def _aopc_single(sample,
 
         prob = _predict(model, encode_fn, device, pert,
                         target_token_fn, target_label_id)
-        aopc.append(original - prob)
+        aopc.append(prob)
 
     return np.array(aopc)
 
@@ -320,7 +320,7 @@ def plot_aopc_curves(aopc_dict, modality, title=None):
         ks = np.arange(1, len(curve) + 1)
         plt.plot(ks, curve, label=label)
     plt.xlabel("masked top-k features")
-    plt.ylabel("Δ probability (AOPC)")
+    plt.ylabel("Probability")
     plt.title(title or f"AOPC – {modality}")
     plt.legend()
     plt.grid(True)
