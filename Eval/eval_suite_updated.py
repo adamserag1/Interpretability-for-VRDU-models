@@ -137,6 +137,7 @@ def evaluate_sample(sample: DocSample,
                     mask_token: str = "[UNK]",
                     target_token_fn=None,
                     target_label_id=None,
+                    target_class_id=None,
                     blur_size=(64, 64),
                     slic_kwargs=None):
 
@@ -149,8 +150,8 @@ def evaluate_sample(sample: DocSample,
     feat_list = _top_k_list(explanation, top_k)
     feat_set = set(feat_list)
 
-    original = _predict(model, encode_fn, device, sample,
-                        target_token_fn, target_label_id)
+    original = _predict(model, encode_fn, device, sample, target_class_id,
+                        target_token_fn, target_label_id, )
 
     # comprehensiveness ------------------------------------------------------ #
     if modality == "text":
@@ -172,7 +173,7 @@ def evaluate_sample(sample: DocSample,
     else:
         raise ValueError("modality must be 'text', 'layout' or 'vision'")
 
-    comp_prob = _predict(model, encode_fn, device, comp_sample,
+    comp_prob = _predict(model, encode_fn, device, comp_sample, target_class_id,
                          target_token_fn, target_label_id)
     comprehensiveness = original - comp_prob
 
@@ -194,7 +195,7 @@ def evaluate_sample(sample: DocSample,
         suff_sample = DocSample(img, sample.words, sample.bboxes,
                                 label=sample.label, ner_tags=sample.ner_tags)
 
-    suff_prob = _predict(model, encode_fn, device, suff_sample,
+    suff_prob = _predict(model, encode_fn, device, suff_sample, target_class_id,
                          target_token_fn, target_label_id)
     sufficiency = original - suff_prob
 
