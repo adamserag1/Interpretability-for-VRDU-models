@@ -89,9 +89,10 @@ def _mask_text(words, feat_set, mask_token, keep):
 def _mask_layout(bboxes, feat_set, image_size, keep):
     w, h = image_size
     full_box = [0, 0, w, h]
+    feat_set = {tuple(b) for b in feat_set}
     out = []
     for b in bboxes:
-        in_set = b in feat_set
+        in_set = tuple(b) in feat_set
         out.append(full_box if (in_set and not keep) or (not in_set and keep)
                    else b)
     return out
