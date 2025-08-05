@@ -40,7 +40,7 @@ from vrdu_utils.encoders import make_layoutlmv3_encoder, make_bros_encoder
 # --------------------------------------------------------------------------- #
 
 def _predict(model, encode_fn, device, sample,
-             target_token_fn=None, target_label_id=None):
+             target_class_id=None,target_token_fn=None, target_label_id=None):
     enc = encode_fn([sample], device)
     if isinstance(enc, tuple):
         enc = enc[0]
@@ -53,9 +53,10 @@ def _predict(model, encode_fn, device, sample,
         except:
             preds = model(**enc)
             logits = preds['logits']
-    if target_token_fn is None:               # classification
+    if target_token_fn is None:  # document-level
         probs = torch.softmax(logits, -1)
-        return probs[0, sample.label].item()
+        idx = target_class_id if target_class_id is not None else sample.label
+        return probs[0, idx].item()
 
     tok_idx = target_token_fn(enc)            # token-classification
     token_logits = logits[0][tok_idx]
@@ -216,6 +217,7 @@ def _aopc_single(sample,
                  device=None,
                  target_token_fn=None,
                  target_label_id=None,
+                target_class_id=None,
                  blur_size=(64, 64),
                  slic_kwargs=None):
     """
@@ -227,7 +229,9 @@ def _aopc_single(sample,
     model  = model.to(device).eval()
 
     original = _predict(model, encode_fn, device, sample,
-                        target_token_fn, target_label_id)
+                        target_class_id=target_class_id,
+                        target_token_fn=target_token_fn,
+                        target_label_id=target_label_id)
 
     aopc  = []
     feats = _top_k_list(explanation, max_k)
@@ -255,7 +259,9 @@ def _aopc_single(sample,
             raise ValueError(modality)
 
         prob = _predict(model, encode_fn, device, pert,
-                        target_token_fn, target_label_id)
+                        target_class_id=target_class_id,
+                        target_token_fn=target_token_fn,
+                        target_label_id=target_label_id)
         aopc.append(prob)
 
     return np.array(aopc)
@@ -267,6 +273,7 @@ def compute_aopc_curves(samples,
                         models_dict,          # key → model
                         encoders_dict,        # key → encode_fn
                         mask_tokens_dict,     # key → mask token
+                        class_ids_dict,
                         *,
                         max_k     = 10,
                         blur_size = (64, 64),
@@ -288,6 +295,7 @@ def compute_aopc_curves(samples,
         model     = models_dict[key]
         encode_fn = encoders_dict[key]
         mask_tok  = mask_tokens_dict[key]
+        class_id = class_ids_dict.get(key)
 
         drops = []
         for samp, exp in tqdm(zip(samples, explanations_dict[key]),
@@ -301,6 +309,7 @@ def compute_aopc_curves(samples,
                              device=device,
                              target_token_fn=target_token_fn,
                              target_label_id=target_label_id,
+                             target_class_id=class_id,
                              blur_size=blur_size,
                              slic_kwargs=slic_kwargs)
             )
