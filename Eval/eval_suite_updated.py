@@ -1,5 +1,3 @@
-
-Evaluation suite for VRDU interpretability models.
 import numpy as np
 import torch
 from copy import deepcopy
