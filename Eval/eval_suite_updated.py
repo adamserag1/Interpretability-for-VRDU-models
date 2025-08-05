@@ -48,8 +48,11 @@ def _predict(model, encode_fn, device, sample,
     enc = {k: v.to(device) for k, v in enc.items()}
 
     with torch.no_grad():
-        logits = model(**enc).logits
-
+        try:
+            logits = model(**enc).logits
+        except:
+            preds = model(**enc)
+            logits = preds['logits']
     if target_token_fn is None:               # classification
         probs = torch.softmax(logits, -1)
         return probs[0, sample.label].item()
