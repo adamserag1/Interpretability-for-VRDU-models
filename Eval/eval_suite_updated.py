@@ -202,52 +202,52 @@ def evaluate_sample(sample: DocSample,
 # --------------------------------------------------------------------------- #
 #  AOPC                                                                       #
 # --------------------------------------------------------------------------- #
-
-def _aopc_single(sample: DocSample,
-                 explanation: Mapping,
-                 modality: str,
-                 model, encode_fn, *,
-                 max_k: int,
+def _aopc_single(sample,
+                 explanation,
+                 modality,
+                 model,
+                 encode_fn,
+                 *,
+                 max_k,
+                 mask_token,
                  device=None,
-                 mask_token="[UNK]",
                  target_token_fn=None,
                  target_label_id=None,
                  blur_size=(64, 64),
                  slic_kwargs=None):
     """
-    Returns an array length `max_k` with cumulative probability drop
-    after masking 1,2,…,k features (AOPC numerator per step).
+    Δ-probability after masking 1…k top features.
+    Returns np.array length max_k.
     """
     slic_kwargs = slic_kwargs or {}
-    device = torch.device(device or ("cuda"
-                                     if torch.cuda.is_available() else "cpu"))
-    model = model.to(device).eval()
+    device = torch.device(device or ("cuda" if torch.cuda.is_available() else "cpu"))
+    model  = model.to(device).eval()
 
     original = _predict(model, encode_fn, device, sample,
                         target_token_fn, target_label_id)
 
-    aopc = []
-    feat_list = _top_k_list(explanation, max_k)
+    aopc  = []
+    feats = _top_k_list(explanation, max_k)
 
     for k in range(1, max_k + 1):
-        remove_set = set(feat_list[:k])
+        remove = set(feats[:k])
 
         if modality == "text":
-            words = _mask_text(sample.words, remove_set, mask_token, keep=False)
-            pert = DocSample(sample.image, words, sample.bboxes,
-                             ner_tags=sample.ner_tags, label=sample.label)
+            words = _mask_text(sample.words, remove, mask_token, keep=False)
+            pert  = DocSample(sample.image, words, sample.bboxes,
+                              label=sample.label, ner_tags=sample.ner_tags)
 
         elif modality == "layout":
-            boxes = _mask_layout(sample.bboxes, remove_set,
+            boxes = _mask_layout(sample.bboxes, remove,
                                  sample.image.size, keep=False)
-            pert = DocSample(sample.image, sample.words, boxes,
-                             ner_tags=sample.ner_tags, label=sample.label)
+            pert  = DocSample(sample.image, sample.words, boxes,
+                              label=sample.label, ner_tags=sample.ner_tags)
 
         elif modality == "vision":
-            img = _mask_vision(sample.image, remove_set, keep=False,
-                               blur_size=blur_size, slic_kwargs=slic_kwargs)
+            img  = _mask_vision(sample.image, remove, keep=False,
+                                blur_size=blur_size, slic_kwargs=slic_kwargs)
             pert = DocSample(img, sample.words, sample.bboxes,
-                             ner_tags=sample.ner_tags, label=sample.label)
+                             label=sample.label, ner_tags=sample.ner_tags)
         else:
             raise ValueError(modality)
 
@@ -258,63 +258,71 @@ def _aopc_single(sample: DocSample,
     return np.array(aopc)
 
 
-def compute_aopc_curves(samples: Sequence[DocSample],
-                        explanations_dict: Dict[str, Sequence[Mapping]],
-                        modality: str,
-                        model_wrappers: Dict[str, 'ModelWrapper'],
+def compute_aopc_curves(samples,
+                        explanations_dict,
+                        modality,
+                        models_dict,          # key → model
+                        encoders_dict,        # key → encode_fn
+                        mask_tokens_dict,     # key → mask token
                         *,
-                        max_k: int = 10,
-                        blur_size=(64, 64),
-                        slic_kwargs=None,
-                        mask_token="[UNK]") -> Dict[str, np.ndarray]:
+                        max_k     = 10,
+                        blur_size = (64, 64),
+                        slic_kwargs = None,
+                        target_token_fn = None,
+                        target_label_id = None,
+                        device   = None):
     """
-    Calculate AOPC (Average-over-k) curves for every key in `explanations_dict`.
+    Returns {key: np.ndarray shape (max_k,)} for every explanation key.
 
-    Parameters
-    ----------
-    explanations_dict : {"BROS lime": …, "LLMV3 lime": …, "LLMV3 shap": …}
-        Each entry is a *list* of explanation dicts aligned with `samples`.
-    model_wrappers : same keys → ModelWrapper containing `.model` & `.encode_fn`
-    Returns
-    -------
-    dict key → np.ndarray shape (max_k,)
-        Mean cumulative drop at each k position.
+    Keys must be *identical* across:
+        • explanations_dict
+        • models_dict
+        • encoders_dict
+        • mask_tokens_dict
     """
     curves = {}
-    for key, exps in explanations_dict.items():
-        mw = model_wrappers[key]
+    for key in explanations_dict:
+        model     = models_dict[key]
+        encode_fn = encoders_dict[key]
+        mask_tok  = mask_tokens_dict[key]
+
         drops = []
-        for samp, exp in tqdm(zip(samples, exps),
+        for samp, exp in tqdm(zip(samples, explanations_dict[key]),
                               total=len(samples),
                               desc=f"AOPC ({key})"):
             drops.append(
                 _aopc_single(samp, exp, modality,
-                             mw.model, mw.encode_fn,
-                             max_k=max_k, mask_token=mask_token,
-                             blur_size=blur_size, slic_kwargs=slic_kwargs)
+                             model, encode_fn,
+                             max_k=max_k,
+                             mask_token=mask_tok,
+                             device=device,
+                             target_token_fn=target_token_fn,
+                             target_label_id=target_label_id,
+                             blur_size=blur_size,
+                             slic_kwargs=slic_kwargs)
             )
         curves[key] = np.mean(np.vstack(drops), axis=0)
+
     return curves
 
 
-def plot_aopc_curves(aopc_dict: Dict[str, np.ndarray],
-                     modality: str,
-                     title: str | None = None):
+def plot_aopc_curves(aopc_dict, modality, title=None):
     """
-    Simple matplotlib line plot with legend.  Colours chosen automatically.
+    Simple matplotlib line plot with legend – one colour per key.
     """
+    import matplotlib.pyplot as plt
+
     plt.figure()
     for label, curve in aopc_dict.items():
         ks = np.arange(1, len(curve) + 1)
         plt.plot(ks, curve, label=label)
-    plt.xlabel("k masked features")
-    plt.ylabel("Δ probability (avg)")
+    plt.xlabel("masked top-k features")
+    plt.ylabel("Δ probability (AOPC)")
     plt.title(title or f"AOPC – {modality}")
     plt.legend()
     plt.grid(True)
     plt.tight_layout()
     plt.show()
-
 
 # --------------------------------------------------------------------------- #
 #  Wrappers (unchanged from previous drop-in)                                 #
