@@ -118,8 +118,10 @@ def _blur_segments(image, segments, seg_ids, blur_size):
     return Image.fromarray(out)
 
 
-def _mask_vision(image, feat_set, keep, blur_size, slic_kwargs):
-    segments = _get_segments(image, **slic_kwargs)
+def _mask_vision(image, feat_set, keep, blur_size, slic_kwargs,
+                 segments=None):
+    if segments is None:
+        segments = _get_segments(image, **slic_kwargs)
     all_ids = set(np.unique(segments))
     to_blur = (all_ids - feat_set) if keep else feat_set
     return _blur_segments(image, segments, to_blur, blur_size)
@@ -130,17 +132,18 @@ def _mask_vision(image, feat_set, keep, blur_size, slic_kwargs):
 # --------------------------------------------------------------------------- #
 
 def evaluate_sample(sample: DocSample,
-                    explanation: Mapping,
-                    modality: str,
-                    model, encode_fn, *,
-                    top_k: int = 1,
-                    device=None,
-                    mask_token: str = "[UNK]",
-                    target_token_fn=None,
-                    target_label_id=None,
-                    target_class_id=None,
-                    blur_size=(64, 64),
-                    slic_kwargs=None):
+                     explanation: Mapping,
+                     modality: str,
+                     model, encode_fn, *,
+                     top_k: int = 1,
+                     device=None,
+                     mask_token: str = "[UNK]",
+                     target_token_fn=None,
+                     target_label_id=None,
+                     target_class_id=None,
+                     blur_size=(64, 64),
+                    slic_kwargs=None,
+                    segments=None):
 
     slic_kwargs = slic_kwargs or dict(n_segments=200,
                                       compactness=20.0, sigma=1.0)
@@ -168,7 +171,9 @@ def evaluate_sample(sample: DocSample,
 
     elif modality == "vision":
         img = _mask_vision(sample.image, feat_set, keep=False,
-                           blur_size=blur_size, slic_kwargs=slic_kwargs)
+                            blur_size = blur_size,
+                            slic_kwargs = slic_kwargs,
+                            segments = segments)
         comp_sample = DocSample(img, sample.words, sample.bboxes,
                                 label=sample.label, ner_tags=sample.ner_tags)
     else:
@@ -192,7 +197,9 @@ def evaluate_sample(sample: DocSample,
 
     elif modality == "vision":
         img = _mask_vision(sample.image, feat_set, keep=True,
-                           blur_size=blur_size, slic_kwargs=slic_kwargs)
+                           blur_size=blur_size,
+                           slic_kwargs = slic_kwargs,
+                            segments = segments)
         suff_sample = DocSample(img, sample.words, sample.bboxes,
                                 label=sample.label, ner_tags=sample.ner_tags)
 
