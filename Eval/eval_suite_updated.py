@@ -40,27 +40,30 @@ from vrdu_utils.encoders import make_layoutlmv3_encoder, make_bros_encoder
 # --------------------------------------------------------------------------- #
 
 def _predict(model, encode_fn, device, sample,
-             target_class_id=None,target_token_fn=None, target_label_id=None):
-    enc = encode_fn([sample], device)
-    if isinstance(enc, tuple):
+             target_class_id=None, target_token_fn=None, target_label_id=None):
+
+    enc = encode_fn([sample], device)         # ← your encoder
+    if isinstance(enc, tuple):                # (enc, enc_on_device) for NER
         enc = enc[0]
 
-    enc = {k: v.to(device) for k, v in enc.items()}
+    # 🔧 keep BatchEncoding so we still have .word_ids() & friends
+    if hasattr(enc, "to"):                    # BatchEncoding, TensorDict …
+        enc = enc.to(device)
+    else:                                     # already a plain dict
+        enc = {k: v.to(device) for k, v in enc.items()}
+    # -------------------------------------------------------------------
 
     with torch.no_grad():
-        try:
-            logits = model(**enc).logits
-        except:
-            preds = model(**enc)
-            logits = preds['logits']
-    if target_token_fn is None:  # document-level
+        out = model(**enc)
+        logits = out.logits if hasattr(out, "logits") else out["logits"]
+
+    if target_token_fn is None:               # document-level models
         probs = torch.softmax(logits, -1)
         idx = target_class_id if target_class_id is not None else sample.label
         return probs[0, idx].item()
 
-    tok_idx = target_token_fn(enc)            # token-classification
-    token_logits = logits[0][tok_idx]
-    probs = torch.softmax(token_logits, -1)
+    tok_idx = target_token_fn(enc)            # token-level (NER)
+    probs   = torch.softmax(logits[0, tok_idx], -1)
     return probs[target_label_id].item()
 
 
@@ -119,7 +122,7 @@ def _blur_segments(image, segments, seg_ids, blur_size):
 
 
 def _mask_vision(image, feat_set, keep, blur_size, slic_kwargs,
-                 segments=None):
+                 segments: np.ndarray | None = None):
     if segments is None:
         segments = _get_segments(image, **slic_kwargs)
     all_ids = set(np.unique(segments))
