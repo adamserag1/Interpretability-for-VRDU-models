@@ -79,15 +79,23 @@ def _top_k_list(explanation: Mapping, k: int) -> List:
 
 
 def _mask_text(words, feat_set, mask_token, keep):
-    out = []
-    for w in words:
-        in_set = w in feat_set
-        if (in_set and not keep) or (not in_set and keep):
-            out.append(mask_token)
-        else:
-            out.append(w)
-    return out
+    """
+    If feat_set contains **indices** we test against indices,
+    otherwise we fall back to the old “word in set” behaviour.
+    """
+    index_mode = all(isinstance(f, int) for f in feat_set)
 
+    masked = []
+    for i, w in enumerate(words):
+        in_set = (i in feat_set) if index_mode else (w in feat_set)
+
+        #   comprehensiveness → keep == False
+        #   sufficiency      → keep == True
+        if (in_set and not keep) or (not in_set and keep):
+            masked.append(mask_token)
+        else:
+            masked.append(w)
+    return masked
 
 def _mask_layout(bboxes, feat_set, image_size, keep):
     if feat_set and isinstance(next(iter(feat_set)), int):
