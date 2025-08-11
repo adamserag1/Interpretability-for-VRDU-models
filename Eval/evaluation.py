@@ -1,20 +1,3 @@
-"""
-Evaluation + AOPC curves for VRDU interpretability
-=================================================
-
-Two new public helpers
-----------------------
-• `compute_aopc_curves(...)`
-    – Returns the AOPC values *per k* for every {model, explainer} pair
-      (keys: `"BROS lime"`, `"LLMV3 lime"`, `"LLMV3 shap"`).
-
-• `plot_aopc_curves(aopc_dict, modality, title=None)`
-    – Matplotlib plot with one line per pair and an automatic legend.
-
-Everything else (fidelity metrics, encoders, wrappers) is unchanged from the
-previous version, except for internal refactors to avoid code-duplication.
-"""
-
 from __future__ import annotations
 import numpy as np
 import matplotlib.pyplot as plt
@@ -23,55 +6,38 @@ from copy import deepcopy
 from PIL import Image, ImageFilter
 from skimage.segmentation import slic
 from tqdm.auto import tqdm
-from typing import Dict, List, Mapping, Sequence
-
-from transformers import (
-    AutoProcessor,
-    AutoModelForSequenceClassification,
-    AutoModelForTokenClassification,
-)
 
 from vrdu_utils.module_types import DocSample
 from vrdu_utils.encoders import make_layoutlmv3_encoder, make_bros_encoder
 
 
-# --------------------------------------------------------------------------- #
-#  Low-level helpers                                                          #
-# --------------------------------------------------------------------------- #
-
 def _predict(model, encode_fn, device, sample,
              target_class_id=None, target_token_fn=None, target_label_id=None):
 
-    enc = encode_fn([sample], device)         # ← your encoder
-    if isinstance(enc, tuple):                # (enc, enc_on_device) for NER
+    enc = encode_fn([sample], device)
+    if isinstance(enc, tuple):
         enc = enc[0]
 
-    # 🔧 keep BatchEncoding so we still have .word_ids() & friends
-    if hasattr(enc, "to"):                    # BatchEncoding, TensorDict …
+    if hasattr(enc, "to"):
         enc = enc.to(device)
-    else:                                     # already a plain dict
+    else:
         enc = {k: v.to(device) for k, v in enc.items()}
-    # -------------------------------------------------------------------
 
     with torch.no_grad():
         out = model(**enc)
         logits = out.logits if hasattr(out, "logits") else out["logits"]
 
-    if target_token_fn is None:               # document-level models
+    if target_token_fn is None:
         probs = torch.softmax(logits, -1)
         idx = target_class_id if target_class_id is not None else sample.label
         return probs[0, idx].item()
 
-    tok_idx = target_token_fn(enc)            # token-level (NER)
+    tok_idx = target_token_fn(enc)
     probs   = torch.softmax(logits[0, tok_idx], -1)
     return probs[target_label_id].item()
 
 
-def _top_k_list(explanation: Mapping, k: int) -> List:
-    """
-    Return the *ordered list* of the k most-important features
-    (most→least importance).  Caps at the number of available features.
-    """
+def _top_k_list(explanation, k: int):
     k = max(1, k)
     items = sorted(explanation.items(),
                    key=lambda kv: kv[1], reverse=True)[:k]
@@ -79,18 +45,12 @@ def _top_k_list(explanation: Mapping, k: int) -> List:
 
 
 def _mask_text(words, feat_set, mask_token, keep):
-    """
-    If feat_set contains **indices** we test against indices,
-    otherwise we fall back to the old “word in set” behaviour.
-    """
     index_mode = all(isinstance(f, int) for f in feat_set)
 
     masked = []
     for i, w in enumerate(words):
         in_set = (i in feat_set) if index_mode else (w in feat_set)
 
-        #   comprehensiveness → keep == False
-        #   sufficiency      → keep == True
         if (in_set and not keep) or (not in_set and keep):
             masked.append(mask_token)
         else:
@@ -110,8 +70,6 @@ def _mask_layout(bboxes, feat_set, image_size, keep):
                    else b)
     return out
 
-
-# ------------------------------  vision ------------------------------------ #
 
 def _get_segments(image, n_segments=200, compactness=20.0, sigma=1.0):
     arr = np.asarray(image.convert("RGB"))
@@ -140,17 +98,13 @@ def _mask_vision(image, feat_set, keep, blur_size, slic_kwargs,
     return _blur_segments(image, segments, to_blur, blur_size)
 
 
-# --------------------------------------------------------------------------- #
-#  Fidelity metrics (unchanged signature)                                     #
-# --------------------------------------------------------------------------- #
-
 def evaluate_sample(sample: DocSample,
-                     explanation: Mapping,
-                     modality: str,
+                     explanation,
+                     modality,
                      model, encode_fn, *,
-                     top_k: int = 1,
+                     top_k = 1,
                      device=None,
-                     mask_token: str = "[UNK]",
+                     mask_token = "[UNK]",
                      target_token_fn=None,
                      target_label_id=None,
                      target_class_id=None,
@@ -170,7 +124,6 @@ def evaluate_sample(sample: DocSample,
     original = _predict(model, encode_fn, device, sample, target_class_id,
                         target_token_fn, target_label_id, )
 
-    # comprehensiveness ------------------------------------------------------ #
     if modality == "text":
         words = _mask_text(sample.words, feat_set, mask_token, keep=False)
         comp_sample = DocSample(sample.image, words, sample.bboxes,
@@ -196,7 +149,6 @@ def evaluate_sample(sample: DocSample,
                          target_token_fn, target_label_id)
     comprehensiveness = original - comp_prob
 
-    # sufficiency ------------------------------------------------------------ #
     if modality == "text":
         words = _mask_text(sample.words, feat_set, mask_token, keep=True)
         suff_sample = DocSample(sample.image, words, sample.bboxes,
@@ -225,9 +177,6 @@ def evaluate_sample(sample: DocSample,
             "original_prob": original}
 
 
-# --------------------------------------------------------------------------- #
-#  AOPC                                                                       #
-# --------------------------------------------------------------------------- #
 def _aopc_single(sample,
                  explanation,
                  modality,
@@ -242,10 +191,7 @@ def _aopc_single(sample,
                 target_class_id=None,
                  blur_size=(64, 64),
                  slic_kwargs=None):
-    """
-    Δ-probability after masking 1…k top features.
-    Returns np.array length max_k.
-    """
+
     slic_kwargs = slic_kwargs or {}
     device = torch.device(device or ("cuda" if torch.cuda.is_available() else "cpu"))
     model  = model.to(device).eval()
@@ -292,32 +238,24 @@ def _aopc_single(sample,
 def compute_aopc_curves(samples,
                         explanations_dict,
                         modality,
-                        models_dict,          # key → model
-                        encoders_dict,        # key → encode_fn
-                        mask_tokens_dict,     # key → mask token
+                        models_dict,
+                        encoders_dict,
+                        mask_tokens_dict,
                         class_ids_dict,
                         *,
-                        max_k     = 10,
-                        blur_size = (64, 64),
-                        slic_kwargs = None,
-                        target_token_fn = None,
-                        target_label_id = None,
+                        max_k = 10,
+                        blur_size= (64, 64),
+                        slic_kwargs= None,
+                        target_token_fn= None,
+                        target_label_id= None,
                         device   = None):
-    """
-    Returns {key: np.ndarray shape (max_k,)} for every explanation key.
 
-    Keys must be *identical* across:
-        • explanations_dict
-        • models_dict
-        • encoders_dict
-        • mask_tokens_dict
-    """
     curves = {}
     for key in explanations_dict:
-        model     = models_dict[key]
+        model = models_dict[key]
         encode_fn = encoders_dict[key]
-        mask_tok  = mask_tokens_dict[key]
-        class_id = class_ids_dict.get(key)
+        mask_tok = mask_tokens_dict[key]
+        class_id= class_ids_dict.get(key)
 
         drops = []
         for samp, exp in tqdm(zip(samples, explanations_dict[key]),
@@ -341,9 +279,7 @@ def compute_aopc_curves(samples,
 
 
 def plot_aopc_curves(aopc_dict, modality, title=None):
-    """
-    Simple matplotlib line plot with legend – one colour per key.
-    """
+
     import matplotlib.pyplot as plt
 
     plt.figure()
@@ -358,42 +294,20 @@ def plot_aopc_curves(aopc_dict, modality, title=None):
     plt.tight_layout()
     plt.show()
 
-# --------------------------------------------------------------------------- #
-#  Wrappers (unchanged from previous drop-in)                                 #
-# --------------------------------------------------------------------------- #
 
-class ModelWrapper:
-    """
-    Holds (`model`, `encode_fn`) for a given backbone, ready for AOPC.
-    """
-    def __init__(self, model, processor,
-                 model_type, task_type, device=None):
-        self.model = model.eval()
-        self.device = device or ("cuda" if torch.cuda.is_available() else "cpu")
-
-        ner = task_type.lower() == "ner"
-        if model_type.lower() == "layoutlmv3":
-            self.encode_fn = make_layoutlmv3_encoder(processor, ner)
-        elif model_type.lower() == "bros":
-            self.encode_fn = make_bros_encoder(processor, ner)
-        else:
-            raise ValueError(f"unknown model_type {model_type!r}")
+# class ModelWrapper:
+#     def __init__(self, model, processor,
+#                  model_type, task_type, device=None):
+#         self.model = model.eval()
+#         self.device = device or ("cuda" if torch.cuda.is_available() else "cpu")
+#
+#         ner = task_type.lower() == "ner"
+#         if model_type.lower() == "layoutlmv3":
+#             self.encode_fn = make_layoutlmv3_encoder(processor, ner)
+#         elif model_type.lower() == "bros":
+#             self.encode_fn = make_bros_encoder(processor, ner)
+#         else:
+#             raise ValueError(f"unknown model_type {model_type!r}")
+#
 
 
-# ------------------------------------------------------- usage snippet ------
-#
-# wrappers = {
-#     "BROS lime"   : ModelWrapper(bros_model , bros_proc , "bros"      , "document_classification"),
-#     "LLMV3 lime"  : ModelWrapper(llm_model  , llm_proc  , "layoutlmv3", "document_classification"),
-#     "LLMV3 shap"  : ModelWrapper(llm_model  , llm_proc  , "layoutlmv3", "document_classification"),
-# }
-#
-# aopc = compute_aopc_curves(samples,
-#                            explanations_dict,   # same keys as wrappers
-#                            modality="text",
-#                            model_wrappers=wrappers,
-#                            max_k=10)
-#
-# plot_aopc_curves(aopc, modality="text")
-#
-# --------------------------------------------------------------------------- #
