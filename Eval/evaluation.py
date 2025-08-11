@@ -37,7 +37,7 @@ def _predict(model, encode_fn, device, sample,
     return probs[target_label_id].item()
 
 
-def _top_k_list(explanation, k: int):
+def _top_k_list(explanation, k):
     k = max(1, k)
     items = sorted(explanation.items(),
                    key=lambda kv: kv[1], reverse=True)[:k]

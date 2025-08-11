@@ -9,7 +9,7 @@ from torch.utils.data import DataLoader, Dataset
 def to_fp16(batch, device):
     out = {}
     for k, v in batch.items():
-        if v.dtype.is_floating_point:      # only floats → half
+        if v.dtype.is_floating_point:      # only floats to half
             out[k] = v.half().to(device)
         else:                             # ints / bools stay as-is
             out[k] = v.to(device)
@@ -45,25 +45,25 @@ def unnormalize_box(bbox, width, height):
 
 
 def draw_lime_token_heatmap(
-    image: Image.Image,
-    words: Sequence[str],
-    boxes: Sequence[Sequence[int]],
-    weights: Mapping[str, float],
+    image,
+    words,
+    boxes,
+    weights,
     *,
-    alpha: float = 0.25,
-    normalised: bool = False,
-    outline: bool = False
-) -> Image.Image:
+    alpha= 0.25,
+    normalised= False,
+    outline = False
+):
 
     if len(words) != len(boxes):
         raise ValueError("`words` and `boxes` must be the same length")
 
-    base     = image.convert("RGBA")
-    overlay  = Image.new("RGBA", base.size, (255, 255, 255, 0))   # fully transparent
-    draw     = ImageDraw.Draw(overlay, mode="RGBA")
+    base = image.convert("RGBA")
+    overlay= Image.new("RGBA", base.size, (255, 255, 255, 0))   # fully transparent
+    draw = ImageDraw.Draw(overlay, mode="RGBA")
 
-    cmap     = cm.get_cmap("coolwarm")
-    max_abs  = max(abs(w) for w in weights.values()) or 1.0
+    cmap = cm.get_cmap("coolwarm")
+    max_abs= max(abs(w) for w in weights.values()) or 1.0
 
     w_px, h_px = base.size
 
@@ -93,11 +93,11 @@ def draw_lime_token_heatmap(
     # merge overlay with base
     return Image.alpha_composite(base, overlay)
 
-def first_subtoken_of_word(word_idx: int, processor):
+def first_subtoken_of_word(word_idx, processor):
     def fn(enc):
         word_ids = processor.tokenizer.word_ids(batch_index=0)
         for pos, wid in enumerate(word_ids):
-            if wid == word_idx:          # <-- first match is the first sub-token
+            if wid == word_idx:
                 return pos
         raise ValueError(f"word_idx {word_idx} not found in batch")
     return fn
